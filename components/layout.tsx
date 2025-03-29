@@ -8,6 +8,7 @@ import {
   IconPill,
   IconLogin,
   IconUser,
+  IconStethoscope,
   IconLogout,
   IconMicroscope
 } from "@tabler/icons-react";
@@ -108,6 +109,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <IconMicroscope className="h-full w-full text-neutral-500 dark:text-neutral-300" />
         ),
         href: "/Labs"
+      },
+      {
+        title: "Appointment",
+        icon: (
+          <IconStethoscope className="h-full w-full text-neutral-500 dark:text-neutral-300" />
+        ),
+        href: "/Appointment"
       },
       !isLoggedIn
         ? {
