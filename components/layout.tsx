@@ -10,13 +10,13 @@ import {
   IconUser,
   IconStethoscope,
   IconLogout,
-  IconMicroscope
+  IconMicroscope,
+  IconCertificate,
 } from "@tabler/icons-react";
 import { SessionContext } from "@/lib/supabase/usercontext";
 import { CopilotManager } from "@/components/copilot";
 import { subscribeUser, unsubscribeUser } from '@/app/actions'
-import { Toaster } from "sonner";
-
+import { createClient } from "@/lib/supabase/client";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -31,15 +31,16 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray
 }
 
-
 export function Layout({ children }: { children: React.ReactNode }) {
   const { sessionData, setSessionData } = useContext(SessionContext);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isSupported, setIsSupported] = useState(false)
   const [subscription, setSubscription] = useState<PushSubscription | null>(
     null
   )
   const pathname = usePathname();
+  const supabase = createClient();
 
   useEffect(() => {
     if ('serviceWorker' in navigator && 'PushManager' in window) {
@@ -51,8 +52,34 @@ export function Layout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (sessionData?.session) {
       setIsLoggedIn(true);
+      // Check if user is an admin
+      checkIfAdmin();
+    } else {
+      setIsLoggedIn(false);
+      setIsAdmin(false);
     }
   }, [sessionData]);
+
+  const checkIfAdmin = async () => {
+    if (sessionData?.session?.user?.id) {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('user_id', sessionData.session.user.id)
+          .single();
+
+        if (data && data.is_admin) {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+      }
+    }
+  };
 
   useEffect(() => {
     if (sessionData?.session && !subscription) {
@@ -89,64 +116,96 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }
 
   const dockItems = useMemo(
-    () => [
-      {
-        title: "Dashboard",
-        icon: (
-          <IconHome className="h-full w-full text-neutral-500 dark:text-neutral-300" />
-        ),
-        href: "/Dashboard"
-      },
-      {
-        title: "Medicine",
-        icon: (
-          <IconPill className="h-full w-full text-neutral-500 dark:text-neutral-300" />
-        ),
-        href: "/Medicine"
-      },
-      {
-        title: "Lab Tests",
-        icon: (
-          <IconMicroscope className="h-full w-full text-neutral-500 dark:text-neutral-300" />
-        ),
-        href: "/Labs"
-      },
-      {
-        title: "Appointment",
-        icon: (
-          <IconStethoscope className="h-full w-full text-neutral-500 dark:text-neutral-300" />
-        ),
-        href: "/Appointment"
-      },
-      !isLoggedIn
-        ? {
-          title: "Sign In",
+    () => {
+      const items = [
+        {
+          title: "Dashboard",
           icon: (
-            <IconLogin className="h-full w-full text-neutral-500 dark:text-neutral-300" />
+            <IconHome className="h-full w-full text-neutral-500 dark:text-neutral-300" />
           ),
-          href: "/SignIn"
-        }
-        : {
-          title: "Sign Out",
-          icon: (
-            <IconLogout className="h-full w-full text-neutral-500 dark:text-neutral-300" />
-          ),
-          href: "/SignOut"
+          href: "/Dashboard"
         },
-      {
-        title: "Profile",
-        icon: (
-          <IconUser className="h-full w-full text-neutral-500 dark:text-neutral-300" />
-        ),
-        href: "/Profile"
+        {
+          title: "Medicine",
+          icon: (
+            <IconPill className="h-full w-full text-neutral-500 dark:text-neutral-300" />
+          ),
+          href: "/Medicine"
+        },
+        {
+          title: "Lab Tests",
+          icon: (
+            <IconMicroscope className="h-full w-full text-neutral-500 dark:text-neutral-300" />
+          ),
+          href: "/Labs"
+        },
+        {
+          title: "Appointment",
+          icon: (
+            <IconStethoscope className="h-full w-full text-neutral-500 dark:text-neutral-300" />
+          ),
+          href: "/Appointment"
+        }
+      ];
+
+      // Add admin-only navigation items
+      if (isAdmin) {
+        items.push({
+          title: "Doctor Verification",
+          icon: (
+            <IconCertificate className="h-full w-full text-neutral-500 dark:text-neutral-300" />
+          ),
+          href: "/Protected/verify"
+        });
+
+        items.push({
+          title: "Admin Management",
+          icon: (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              className="h-full w-full text-neutral-500 dark:text-neutral-300">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          ),
+          href: "/Protected/admin"
+        });
       }
-    ],
-    [isLoggedIn]
+
+      // Add the sign in/out and profile items
+      items.push(
+        !isLoggedIn
+          ? {
+            title: "Sign In",
+            icon: (
+              <IconLogin className="h-full w-full text-neutral-500 dark:text-neutral-300" />
+            ),
+            href: "/SignIn"
+          }
+          : {
+            title: "Sign Out",
+            icon: (
+              <IconLogout className="h-full w-full text-neutral-500 dark:text-neutral-300" />
+            ),
+            href: "/SignOut"
+          },
+        {
+          title: "Profile",
+          icon: (
+            <IconUser className="h-full w-full text-neutral-500 dark:text-neutral-300" />
+          ),
+          href: "/Profile"
+        }
+      );
+
+      return items;
+    },
+    [isLoggedIn, isAdmin]
   );
 
   return (
-    <>
-    <Toaster richColors/>
     <div className="flex min-h-screen bg-white dark:bg-gray-950">
       {/* Sidebar Navigation */}
       <aside className="hidden md:flex flex-col fixed inset-y-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-sm">
@@ -154,7 +213,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="p-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center space-x-3">
             <div className="">
-            <img src="/icon.svg" alt="icon" className="w-8 h-8" />
+              <img src="/icon.svg" alt="icon" className="w-8 h-8" />
             </div>
             <h1 className="text-xl font-bold bg-gradient-to-r from-cyan-600 to-blue-700 bg-clip-text text-transparent">
               PharmaAI
@@ -201,7 +260,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         />
       </main>
     </div>
-    </>
   );
 }
 

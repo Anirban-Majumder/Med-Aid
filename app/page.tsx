@@ -31,7 +31,7 @@ export default function Home() {
 
   const handleDoctorSignup = () => {
     setIsDoctorLoading(true);
-    router.push("/SignIn?type=doctor&signup=true");
+    router.push("/doctor/docsignup");
   };
 
   return (
