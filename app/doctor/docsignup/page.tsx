@@ -45,7 +45,6 @@ export default function DoctorSignUp() {
     // If already logged in, redirect to the setup page
     if (sessionData?.session) {
         router.push('/doctor/setup');
-        return null;
     }
 
     return (
