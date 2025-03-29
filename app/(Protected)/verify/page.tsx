@@ -15,10 +15,10 @@ type DoctorApplication = {
     user_id: string;
     first_name: string;
     last_name: string;
-    specialty: string;
-    license_number: string;
+    specializations: string;
+    registration_no: string;
     years_of_experience: number;
-    hospital_affiliation: string;
+    description: string;
     phone: string;
     address: string;
     bio: string;
@@ -38,54 +38,132 @@ export default function AdminVerifyPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedDoctor, setSelectedDoctor] = useState<DoctorApplication | null>(null);
     const [viewingDocs, setViewingDocs] = useState<{ type: 'license' | 'degree', url: string } | null>(null);
+    const [stateLoaded, setStateLoaded] = useState(false);
+
+    // Load state from sessionStorage on initial mount
+    useEffect(() => {
+        try {
+            const savedState = sessionStorage.getItem('verifyPageState');
+            if (savedState) {
+                const parsedState = JSON.parse(savedState);
+                if (parsedState.applications) setApplications(parsedState.applications);
+                if (parsedState.selectedDoctor) setSelectedDoctor(parsedState.selectedDoctor);
+                if (parsedState.viewingDocs) setViewingDocs(parsedState.viewingDocs);
+                if (parsedState.isAdmin) setIsAdmin(parsedState.isAdmin);
+                setStateLoaded(true);
+            }
+        } catch (error) {
+            console.error('Error restoring state from sessionStorage:', error);
+        }
+    }, []);
+
+    // Add visibility change handler to prevent refreshing when switching tabs
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                // Tab is now visible again, restore state from sessionStorage
+                try {
+                    const savedState = sessionStorage.getItem('verifyPageState');
+                    if (savedState) {
+                        const parsedState = JSON.parse(savedState);
+                        if (parsedState.applications) setApplications(parsedState.applications);
+                        if (parsedState.selectedDoctor) setSelectedDoctor(parsedState.selectedDoctor);
+                        if (parsedState.viewingDocs) setViewingDocs(parsedState.viewingDocs);
+                        if (parsedState.isAdmin) setIsAdmin(parsedState.isAdmin);
+                    }
+                } catch (error) {
+                    console.error('Error restoring state on visibility change:', error);
+                }
+            }
+        };
+
+        // Add event listener for visibility change
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Clean up
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
+
+    // Save state to sessionStorage whenever important state changes
+    useEffect(() => {
+        if (!isLoading) {
+            try {
+                const stateToSave = {
+                    applications,
+                    selectedDoctor,
+                    viewingDocs,
+                    isAdmin
+                };
+                sessionStorage.setItem('verifyPageState', JSON.stringify(stateToSave));
+            } catch (error) {
+                console.error('Error saving state to sessionStorage:', error);
+            }
+        }
+    }, [applications, selectedDoctor, viewingDocs, isAdmin, isLoading]);
 
     useEffect(() => {
-        // Redirect to sign in if not authenticated
-        if (!sessionLoading && !sessionData?.session) {
-            router.push('/SignIn');
-            return;
-        }
+        let mounted = true;
 
         const checkUserAdminStatus = async () => {
-            if (sessionData?.session?.user?.id && sessionData?.session?.user?.email) {
-                try {
-                    // Use the checkAdminStatus function from admin.ts
-                    const isAdminUser = await checkAdminStatus(
-                        supabase,
-                        sessionData.session.user.id,
-                        sessionData.session.user.email
-                    );
+            if (!sessionData?.session?.user?.id || !sessionData?.session?.user?.email) {
+                if (mounted) {
+                    setIsLoading(false);
+                }
+                return;
+            }
 
-                    // If not admin, redirect to dashboard
-                    if (!isAdminUser) {
-                        setIsAdmin(false);
-                        router.push('/Dashboard'); // Changed from '/Protected/Dashboard' to '/Dashboard'
-                        return;
-                    }
+            try {
+                const isAdminUser = await checkAdminStatus(
+                    supabase,
+                    sessionData.session.user.id,
+                    sessionData.session.user.email
+                );
 
-                    setIsAdmin(true);
-                    // Fetch pending doctor applications
+                if (!mounted) return;
+
+                if (!isAdminUser) {
+                    setIsAdmin(false);
+                    router.push('/Dashboard');
+                    return;
+                }
+
+                setIsAdmin(true);
+
+                // Only fetch applications if they haven't been loaded from sessionStorage
+                if (applications.length === 0 && !stateLoaded) {
                     await fetchPendingApplications();
-                } catch (error) {
-                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-                    console.error('Error in admin verification:', errorMessage);
-                    router.push('/SignIn');
-                } finally {
+                } else {
+                    setIsLoading(false);
+                }
+            } catch (error) {
+                if (!mounted) return;
+                console.error('Error in admin verification:', error);
+            } finally {
+                if (mounted) {
                     setIsLoading(false);
                 }
             }
         };
 
-        if (sessionData?.session) {
+        if (!sessionLoading && !stateLoaded) {
             checkUserAdminStatus();
+        } else if (stateLoaded) {
+            // If state was loaded from sessionStorage, we can skip the loading phase
+            setIsLoading(false);
         }
-    }, [sessionData, sessionLoading, router]);
+
+        return () => {
+            mounted = false;
+        };
+    }, [sessionData?.session?.user, sessionLoading, applications.length, stateLoaded]);
 
     const fetchPendingApplications = async () => {
         setIsLoading(true);
         try {
             const { data, error } = await supabase
-                .from('doctor_profiles')
+                .from('doc_profiles')
                 .select('*')
                 .eq('is_verified', false)
                 .order('created_at', { ascending: false });
@@ -109,7 +187,7 @@ export default function AdminVerifyPage() {
         try {
             // Update doctor profile to verified and approved
             const { error } = await supabase
-                .from('doctor_profiles')
+                .from('doc_profiles')
                 .update({
                     is_verified: true,
                     is_approved: true
@@ -140,7 +218,7 @@ export default function AdminVerifyPage() {
         try {
             // Delete the doctor profile or mark it as rejected
             const { error } = await supabase
-                .from('doctor_profiles')
+                .from('doc_profiles')
                 .delete()
                 .eq('id', doctorId);
 
@@ -239,7 +317,7 @@ export default function AdminVerifyPage() {
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-zinc-500 dark:text-zinc-400">Specialty</span>
-                                            <span className="font-medium">{selectedDoctor.specialty}</span>
+                                            <span className="font-medium">{selectedDoctor.specializations}</span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-zinc-500 dark:text-zinc-400">Experience</span>
@@ -257,11 +335,11 @@ export default function AdminVerifyPage() {
                                     <div className="bg-zinc-50 dark:bg-zinc-700/40 rounded-xl p-4 space-y-3">
                                         <div className="flex justify-between">
                                             <span className="text-zinc-500 dark:text-zinc-400">License Number</span>
-                                            <span className="font-medium">{selectedDoctor.license_number}</span>
+                                            <span className="font-medium">{selectedDoctor.registration_no}</span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-zinc-500 dark:text-zinc-400">Hospital/Clinic</span>
-                                            <span className="font-medium">{selectedDoctor.hospital_affiliation}</span>
+                                            <span className="text-zinc-500 dark:text-zinc-400">Degree</span>
+                                            <span className="font-medium">{selectedDoctor.description}</span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-zinc-500 dark:text-zinc-400">Office Address</span>
@@ -383,7 +461,7 @@ export default function AdminVerifyPage() {
                                             <div className="flex items-start justify-between mb-4">
                                                 <div>
                                                     <h3 className="text-lg font-bold">{application.first_name} {application.last_name}</h3>
-                                                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{application.specialty}</p>
+                                                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{application.specializations}</p>
                                                 </div>
                                                 <span className="px-3 py-1 text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-800/30 dark:text-yellow-200 rounded-full">
                                                     Pending
@@ -393,7 +471,7 @@ export default function AdminVerifyPage() {
                                             <div className="space-y-2 mb-5">
                                                 <div className="flex justify-between text-sm">
                                                     <span className="text-zinc-500 dark:text-zinc-400">License</span>
-                                                    <span>{application.license_number}</span>
+                                                    <span>{application.registration_no}</span>
                                                 </div>
                                                 <div className="flex justify-between text-sm">
                                                     <span className="text-zinc-500 dark:text-zinc-400">Experience</span>
