@@ -18,6 +18,15 @@ interface MedicineModalProps {
   imgUrl?: string;
 }
 
+const calculateEndDate = (duration: string): string => {
+  if (!duration.match(/^\d+d$/)) return duration; // Return as-is if not in "Xd" format
+  
+  const days = parseInt(duration);
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() + days);
+  return endDate.toISOString().split('T')[0];
+};
+
 export default function OCRModal({ imgUrl }: MedicineModalProps) {
   const supabase = createClient();
   const { sessionData, setSessionData } = useContext(SessionContext);
@@ -72,6 +81,8 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
                     eat_upto: med.eat_upto || "",
                     m_id: med.m_id || "12131",
                     times_to_eat: med.times_to_eat || ["2000"],
+                    side_effect: med.side_effect || [],
+                    uses: med.uses || "",
                   });
                 });
               }
@@ -87,7 +98,8 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
               description: "",
               eat_upto: new Date().toISOString().split('T')[0],
               times_to_eat: ["0800"],
-              m_id: Date.now().toString()
+              side_effect: [],
+              uses: "",
             }]);
           } else {
             setMedicines(medicinesList);
@@ -111,12 +123,16 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
 
   const handleMedicineChange = (index: number, field: string, value: string) => {
     const updatedMedicines = [...medicines];
+    if (field === "eat_upto" && value.match(/^\d+d$/)) {
+      // Convert "Xd" format to actual date
+      value = calculateEndDate(value);
+    }
     updatedMedicines[index] = { ...updatedMedicines[index], [field]: value };
     setMedicines(updatedMedicines);
   };
 
   const handleAddMedicine = () => {
-    setMedicines([...medicines, { name: "", eat_upto: "", times_to_eat: [], description: "" }]);
+    setMedicines([...medicines, { name: "", eat_upto: "", times_to_eat: [], description: "", side_effect: [], uses: "" }]);  
   };
 
   const handleAddSymptom = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -232,7 +248,9 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
       description: "",
       eat_upto: new Date().toISOString().split('T')[0],
       times_to_eat: ["0800"],
-      m_id: Date.now().toString()
+      m_id: Date.now().toString(),
+      side_effect:[],
+      uses: "",
     }]);
     setIsOpen(true);
   };
@@ -337,8 +355,8 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
                 </div>
 
                 <Input
-                  placeholder="Duration"
-                  type="date"
+                  placeholder="Duration (e.g. 5d)"
+                  type="text"
                   value={medicine.eat_upto}
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     handleMedicineChange(index, "eat_upto", e.target.value)

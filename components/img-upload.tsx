@@ -25,6 +25,8 @@ export default function ImageUpload() {
     eat_upto: "",
     m_id: "",
     times_to_eat: ["0800"], // Default to one time slot with 8:00 AM in military format
+    side_effect: [],
+    uses: "",
   });
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -40,6 +42,15 @@ export default function ImageUpload() {
       reader.onload = (e) => setImage(e.target?.result as string);
       reader.readAsDataURL(file);
     }
+  };
+
+  const calculateEndDate = (duration: string): string => {
+    if (!duration.match(/^\d+d$/)) return duration; // Return as-is if not in "Xd" format
+    
+    const days = parseInt(duration);
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + days);
+    return endDate.toISOString().split('T')[0];
   };
 
   async function uploadToPrescriptionBucket(file: File): Promise<string | undefined> {
@@ -211,6 +222,8 @@ export default function ImageUpload() {
             times_to_eat: input.times_to_eat,
             eat_upto: input.eat_upto,
             m_id: input.m_id,
+            side_effect: input.side_effect,
+            uses: input.uses,
           },
         ],
       }));
@@ -435,9 +448,14 @@ export default function ImageUpload() {
               </div>
 
               <Input
-                type="date"
+                type="text"
+                placeholder="Duration (e.g. 5d) or date"
                 value={input.eat_upto}
-                onChange={(e) => setInput((prev) => ({ ...prev, eat_upto: e.target.value }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const finalValue = value.match(/^\d+d$/) ? calculateEndDate(value) : value;
+                  setInput((prev) => ({ ...prev, eat_upto: finalValue }));
+                }}
                 className="border-2 border-cyan-200 dark:border-cyan-800 focus:border-cyan-500 rounded-xl px-4 py-3"
               />
 

@@ -15,6 +15,7 @@ import {
 import { SessionContext } from "@/lib/supabase/usercontext";
 import { CopilotManager } from "@/components/copilot";
 import { subscribeUser, unsubscribeUser } from '@/app/actions'
+import { Toaster } from "sonner";
 
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -144,6 +145,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 
   return (
+    <>
+    <Toaster richColors/>
     <div className="flex min-h-screen bg-white dark:bg-gray-950">
       {/* Sidebar Navigation */}
       <aside className="hidden md:flex flex-col fixed inset-y-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-sm">
@@ -198,6 +201,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         />
       </main>
     </div>
+    </>
   );
 }
 
