@@ -14,7 +14,7 @@ export default function Dashboard() {
   const [selectedDates, setSelectedDates] = useState<Record<string, Date[]>>({});
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [mounted, setMounted] = useState(false);
-    const { theme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -166,12 +166,6 @@ export default function Dashboard() {
             className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             Cancel
-          </button>
-          <button
-            onClick={() => setShowUploadModal(false)}
-            className="px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-medium shadow-md hover:shadow-lg transition-all"
-          >
-            Upload
           </button>
         </div>
       </motion.div>
