@@ -19,6 +19,20 @@ export default function Dashboard() {
     setMounted(true);
   }, []);
 
+  // Helper function to find symptoms related to a medicine
+  const getRelatedSymptoms = (medicineName: string) => {
+    if (!sessionData.profile?.symptoms || sessionData.profile.symptoms.length === 0) {
+      return [];
+    }
+
+    // This is a simple example that matches symptoms to medicines based on name similarity
+    // In a real app, you might have a more structured relationship between medicines and symptoms
+    return sessionData.profile.symptoms.filter(symptom =>
+      medicineName.toLowerCase().includes(symptom.name.toLowerCase()) ||
+      symptom.name.toLowerCase().includes(medicineName.toLowerCase())
+    );
+  };
+
   if (!sessionData.profile) {
     return (
       <Layout>
@@ -111,7 +125,7 @@ export default function Dashboard() {
       <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M19.7071 4.29289C18.5332 3.11895 16.8668 3.11895 15.6929 4.29289L4.29289 15.6929C3.11895 16.8668 3.11895 18.5332 4.29289 19.7071C5.46683 20.8811 7.13317 20.8811 8.30711 19.7071L19.7071 8.30711C20.8811 7.13317 20.8811 5.46683 19.7071 4.29289Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         <path d="M12 12L16.5 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      </  svg>
+      </svg>
     );
   };
 
@@ -333,49 +347,72 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {sessionData.medicines.map((medicine) => (
-                <div
-                  key={medicine.m_id || medicine.name}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 dark:border-gray-700 cursor-pointer"
-                  onClick={() => setOpenMedicine(medicine.name)}
-                >
-                  <div className="flex items-start space-x-4">
-                    <div className="flex-shrink-0">
-                      <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-100 to-blue-200 dark:from-cyan-800 dark:to-blue-900 flex items-center justify-center text-cyan-700 dark:text-cyan-300">
-                        {getMedicineIcon(medicine)}
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start">
-                        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 truncate">
-                          {medicine.name}
-                        </h3>
-                        <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200">
-                          Daily
-                        </span>
-                      </div>
-                      <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                        {medicine.description || "No description available"}
-                      </p>
+              {sessionData.medicines.map((medicine) => {
+                const relatedSymptoms = getRelatedSymptoms(medicine.name);
 
-                      <div className="mt-3 flex items-center text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-700">
-                        <div className="flex items-center">
-                          <svg className="w-4 h-4 mr-1 text-cyan-500 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span>Next: Today</span>
+                return (
+                  <div
+                    key={medicine.m_id || medicine.name}
+                    className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 dark:border-gray-700 cursor-pointer"
+                    onClick={() => setOpenMedicine(medicine.name)}
+                  >
+                    <div className="flex items-start space-x-4">
+                      <div className="flex-shrink-0">
+                        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-cyan-100 to-blue-200 dark:from-cyan-800 dark:to-blue-900 flex items-center justify-center text-cyan-700 dark:text-cyan-300">
+                          {getMedicineIcon(medicine)}
                         </div>
-                        <div className="flex items-center ml-4">
-                          <svg className="w-4 h-4 mr-1 text-purple-500 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <span>{selectedDates[medicine.name]?.length || 0} reminders</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start">
+                          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 truncate">
+                            {medicine.name}
+                          </h3>
+                          <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200">
+                            Daily
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                          {medicine.description || "No description available"}
+                        </p>
+
+                        {/* Display related symptoms */}
+                        {relatedSymptoms.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                              Related Symptoms:
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {relatedSymptoms.map((symptom, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-2 py-0.5 text-xs rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200"
+                                >
+                                  {symptom.name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="mt-3 flex items-center text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-700">
+                          <div className="flex items-center">
+                            <svg className="w-4 h-4 mr-1 text-cyan-500 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Next: Today</span>
+                          </div>
+                          <div className="flex items-center ml-4">
+                            <svg className="w-4 h-4 mr-1 text-purple-500 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span>{selectedDates[medicine.name]?.length || 0} reminders</span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -404,6 +441,28 @@ export default function Dashboard() {
                   {openMedicine}
                 </h2>
               </div>
+
+              {/* Display symptoms in the modal as well */}
+              {getRelatedSymptoms(openMedicine).length > 0 && (
+                <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                  <h3 className="font-medium text-gray-800 dark:text-gray-200 mb-2 flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-purple-500 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Related Symptoms
+                  </h3>
+                  <div className="flex flex-wrap gap-1">
+                    {getRelatedSymptoms(openMedicine).map((symptom, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2 py-0.5 text-xs rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200"
+                      >
+                        {symptom.name} {symptom.startDate && `(from ${symptom.startDate.split("-").reverse().join("-")})`}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-6 border border-gray-100 dark:border-gray-700">
                 <h3 className="font-medium text-gray-800 dark:text-gray-200 mb-2 flex items-center">
