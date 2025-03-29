@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GoogleAIFileManager } from "@google/generative-ai/server";
-import fs from "fs";
-import os from "os";
-import path from "path";
-import exp from 'constants';
 
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {
