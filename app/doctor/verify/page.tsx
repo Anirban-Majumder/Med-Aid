@@ -163,7 +163,7 @@ export default function DoctorVerifyPage() {
     const fetchDoctorProfile = async (userId: string) => {
         try {
             const { data, error } = await supabase
-                .from('doctor_profiles') // Changed from doc_profiles to doctor_profiles
+                .from('doctor_profiles')
                 .select('*')
                 .eq('user_id', userId)
                 .single();
@@ -186,7 +186,7 @@ export default function DoctorVerifyPage() {
     const fetchPendingApplications = async () => {
         try {
             const { data, error } = await supabase
-                .from('doctor_profiles') // Changed from doc_profiles to doctor_profiles
+                .from('doctor_profiles')
                 .select('*')
                 .eq('is_verified', false)
                 .order('created_at', { ascending: false });
@@ -379,24 +379,33 @@ export default function DoctorVerifyPage() {
                             </>
                         ) : (
                             <div className="text-center">
-                                <h2 className="text-2xl font-bold mb-4">Application Not Found</h2>
+                                <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+                                <h2 className="text-2xl font-bold mb-2">No Application Found</h2>
                                 <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                                    You haven't submitted a doctor verification application yet.
-                                    Please complete the application form to join our healthcare platform.
+                                    To join our healthcare platform as a doctor, you'll need to complete
+                                    your profile and submit your credentials for verification. This includes:
                                 </p>
-                                <div className="flex flex-col gap-4">
-                                    <Link
-                                        href="/doctor/setup"
-                                        className="inline-flex items-center justify-center w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                                    >
-                                        Start New Application
-                                    </Link>
-                                    <Link
-                                        href="/"
-                                        className="inline-flex items-center justify-center w-full px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                                    >
-                                        Return to Home
-                                    </Link>
+                                <ul className="text-left text-sm text-zinc-600 dark:text-zinc-400 mb-6 space-y-2">
+                                    <li className="flex items-center">
+                                        <span className="bg-blue-100 dark:bg-blue-900/30 p-1 rounded-full mr-2">•</span>
+                                        Professional details and qualifications
+                                    </li>
+                                    <li className="flex items-center">
+                                        <span className="bg-blue-100 dark:bg-blue-900/30 p-1 rounded-full mr-2">•</span>
+                                        Medical license documentation
+                                    </li>
+                                    <li className="flex items-center">
+                                        <span className="bg-blue-100 dark:bg-blue-900/30 p-1 rounded-full mr-2">•</span>
+                                        Degree certificates and credentials
+                                    </li>
+                                </ul>
+                                <div className="flex flex-col space-y-3">
+                                    <Button asChild className="w-full">
+                                        <Link href="/doctor/setup">Start Your Application</Link>
+                                    </Button>
+                                    <Button asChild variant="outline">
+                                        <Link href="/">Return to Home</Link>
+                                    </Button>
                                 </div>
                             </div>
                         )}

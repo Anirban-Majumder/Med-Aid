@@ -58,28 +58,56 @@ export default function DoctorSetup() {
             return;
         }
 
-        const checkExistingProfile = async () => {
+        // Check if the doctor already has a profile
+        const checkDoctorProfile = async () => {
             if (sessionData?.session?.user?.id) {
                 try {
-                    const { data: profile, error } = await supabase
-                        .from('doctor_profiles') // Changed from doc_profiles to doctor_profiles
-                        .select('*')
-                        .eq('user_id', sessionData.session.user.id)
-                        .single();
+                    // First, check if the table exists by making a safe query
+                    const { count, error: tableError } = await supabase
+                        .from('doc_profiles')
+                        .select('*', { count: 'exact', head: true });
 
-                    if (!error && profile) {
-                        // If profile exists, redirect to verify page
-                        router.push('/doctor/verify');
-                        return;
+                    // If there's an error with the table query, it might not exist yet
+                    if (tableError) {
+                        console.log('Doctor profiles table might not exist yet:', tableError.message);
+                        return; // Continue with the setup form
                     }
-                } catch (error) {
-                    console.error('Error checking existing profile:', error);
+
+                    // If we successfully queried the table, now check for the user's profile
+                    try {
+                        const { data, error: profileError } = await supabase
+                            .from('doc_profiles')
+                            .select('*')
+                            .eq('user_id', sessionData.session.user.id)
+                            .maybeSingle();
+
+                        // Safely handle the case when no profile is found
+                        if (profileError) {
+                            // Only log as a warning if it's not just "no rows found"
+                            if (!profileError.message.includes('No rows found')) {
+                                console.warn('Could not check for existing doctor profile:', profileError.message);
+                            }
+                            return;
+                        }
+
+                        // If doctor profile exists, redirect to verify page
+                        if (data) {
+                            console.log('Doctor profile found, redirecting to verify page');
+                            router.push('/doctor/verify');
+                        }
+                    } catch (profileErr: any) {
+                        console.log('Error in specific profile check:', profileErr?.message || 'Unknown error');
+                        // Continue with setup form
+                    }
+                } catch (err: any) {
+                    console.log('General error in profile checking:', err?.message || 'Unknown error');
+                    // Continue with setup form
                 }
             }
         };
 
         if (sessionData?.session) {
-            checkExistingProfile();
+            checkDoctorProfile();
         }
     }, [sessionData, sessionLoading, router]);
 
@@ -197,7 +225,7 @@ export default function DoctorSetup() {
 
             // Create doctor profile in Supabase
             const { error: profileError } = await supabase
-                .from('doctor_profiles') // Changed from doc_profiles to doctor_profiles
+                .from('doc_profiles')
                 .insert({
                     created_at: new Date().toISOString(),
                     first_name: formData.firstName,
@@ -216,6 +244,22 @@ export default function DoctorSetup() {
                 });
 
             if (profileError) throw profileError;
+
+            // Create entry in doctor_documents table to track documents separately
+            /*const { error: documentsError } = await supabase
+                .from('doctor_documents')
+                .insert({
+                    doctor_id: userId,
+                    license_path: licenseUrl,
+                    degree_path: degreeUrl,
+                    uploaded_at: new Date().toISOString(),
+                    status: 'pending_review'
+                });
+
+            if (documentsError) {
+                console.warn('Error creating document record:', documentsError);
+                // Continue anyway as the main profile was created
+            }*/
 
             // Redirect to verification page
             router.push('/doctor/verify');
