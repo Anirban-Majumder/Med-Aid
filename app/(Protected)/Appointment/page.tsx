@@ -7,8 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogT
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
-import { toast, Toaster } from "sonner"; // Add this import
-import { Phone } from "lucide-react";
+import { toast, Toaster } from "react-hot-toast"; 
 
 interface Doctor {
   id: number;
