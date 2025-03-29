@@ -2,6 +2,8 @@
 import Button from "@/components/ui/button2";
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Clock,
@@ -14,23 +16,34 @@ import {
   Star,
   User,
   Stethoscope,
+  Loader2,
 } from "lucide-react";
 
 export default function Home() {
+  const [isPatientLoading, setIsPatientLoading] = useState(false);
+  const [isDoctorLoading, setIsDoctorLoading] = useState(false);
+  const router = useRouter();
+
+  const handlePatientLogin = () => {
+    setIsPatientLoading(true);
+    router.push("/SignIn?type=patient");
+  };
+
+  const handleDoctorSignup = () => {
+    setIsDoctorLoading(true);
+    router.push("/SignIn?type=doctor&signup=true");
+  };
+
   return (
-    <>    
-  {/* Hero Section with Gradient Background */}
+    <>
+      {/* Hero Section with Gradient Background */}
       <section className="relative flex flex-col items-center justify-center pt-28 pb-20 min-h-screen text-center px-4 overflow-hidden bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-950">
-      <div className="absolute inset-0 -z-10 opacity-20">  
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/30 to-purple-600/30" />
+        <div className="absolute inset-0 -z-10 opacity-20">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/30 to-purple-600/30" />
         </div>
         <div className="absolute top-4 left-4">
-            <Image
-              src="/icon.svg" 
-              alt="Icon"
-              width={50} 
-              height={50}
-        /></div>
+          <Image src="/icon.svg" alt="Icon" width={50} height={50} />
+        </div>
         <div className="max-w-5xl mx-auto relative z-10">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/30 rounded-full blur-3xl -z-10" />
 
@@ -39,39 +52,61 @@ export default function Home() {
           </h1>
 
           <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto text-gray-600 dark:text-gray-300 animate-fade-in-delayed">
-            PharmaAI is your trusted companion for all your medical needs.
-            We provide intelligent medication management, appointment
-            scheduling, and personalized health tracking.
+            PharmaAI is your trusted companion for all your medical needs. We
+            provide intelligent medication management, appointment scheduling,
+            and personalized health tracking.
           </p>
 
           {/* Login Options with Enhanced Buttons */}
           <div className="flex flex-col md:flex-row justify-center items-center gap-4 mt-8 animate-fade-in-delayed-more">
-            <Link href="/SignIn?type=patient" className="w-full md:w-auto">
-              <div className="group relative px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all duration-300 transform hover:-translate-y-1">
-                <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={handlePatientLogin}
+              disabled={isPatientLoading}
+              className="group relative w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-80 disabled:cursor-not-allowed"
+            >
+              <div className="flex items-center justify-center gap-3">
+                {isPatientLoading ? (
+                  <Loader2 size={22} className="text-white animate-spin" />
+                ) : (
                   <User size={22} className="text-white" />
-                  <span className="text-lg font-semibold text-white">Patient Login</span>
-                </div>
-                <div className="absolute inset-0 -z-10 bg-gradient-to-r from-blue-600 to-blue-800 opacity-0 group-hover:opacity-100 blur-xl transition-opacity rounded-xl"></div>
+                )}
+                <span className="text-lg font-semibold text-white">
+                  {isPatientLoading ? "Loading..." : "Patient Login"}
+                </span>
               </div>
-            </Link>
-
+              <div className="absolute inset-0 -z-10 bg-gradient-to-r from-blue-600 to-blue-800 opacity-0 group-hover:opacity-100 blur-xl transition-opacity rounded-xl"></div>
+            </button>
           </div>
 
           {/* New Doctor Signup CTA */}
           <div className="mt-12 p-6 bg-white dark:bg-gray-800/60 rounded-2xl shadow-xl max-w-2xl mx-auto animate-fade-in-delayed-more border border-gray-100 dark:border-gray-700">
-            <h2 className="text-2xl font-bold mb-3 text-gray-800 dark:text-white">Are you a healthcare provider?</h2>
+            <h2 className="text-2xl font-bold mb-3 text-gray-800 dark:text-white">
+              Are you a healthcare provider?
+            </h2>
             <p className="text-gray-600 dark:text-gray-300 mb-6">
-              Join our platform to streamline patient care, manage prescriptions efficiently, and improve medication adherence.
+              Join our platform to streamline patient care, manage prescriptions
+              efficiently, and improve medication adherence.
             </p>
-            <Link href="/SignIn?type=doctor&signup=true" className="inline-block">
-              <div className="group relative px-6 py-3 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 rounded-xl shadow-lg hover:shadow-green-500/30 transition-all duration-300 transform hover:-translate-y-1">
-                <div className="flex items-center justify-center gap-2">
-                  <span className="text-white font-medium">Create Doctor Account</span>
-                  <ArrowRight size={18} className="text-white transition-transform group-hover:translate-x-1" />
-                </div>
+            <button
+              onClick={handleDoctorSignup}
+              disabled={isDoctorLoading}
+              className="group relative inline-block px-6 py-3 bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 rounded-xl shadow-lg hover:shadow-green-500/30 transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-80 disabled:cursor-not-allowed"
+            >
+              <div className="flex items-center justify-center gap-2">
+                {isDoctorLoading ? (
+                  <Loader2 className="w-5 h-5 text-white animate-spin" />
+                ) : null}
+                <span className="text-white font-medium">
+                  {isDoctorLoading ? "Loading..." : "Create Doctor Account"}
+                </span>
+                {!isDoctorLoading && (
+                  <ArrowRight
+                    size={18}
+                    className="text-white transition-transform group-hover:translate-x-1"
+                  />
+                )}
               </div>
-            </Link>
+            </button>
           </div>
         </div>
 
@@ -171,66 +206,134 @@ export default function Home() {
 
           {/* Doctor Portal Features */}
           <div className="mt-20 bg-white dark:bg-gray-800/60 p-8 rounded-2xl shadow-xl max-w-4xl mx-auto border border-gray-100 dark:border-gray-700">
-            <h2 className="text-3xl font-bold mb-6 text-center text-gray-800 dark:text-white">Doctor Portal Features</h2>
+            <h2 className="text-3xl font-bold mb-6 text-center text-gray-800 dark:text-white">
+              Doctor Portal Features
+            </h2>
             <div className="grid md:grid-cols-2 gap-8">
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0 bg-purple-100 dark:bg-purple-900/30 p-3 rounded-full">
                   <Stethoscope className="w-6 h-6 text-purple-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold mb-2">Patient Management</h3>
-                  <p className="text-gray-600 dark:text-gray-300">Easily track and manage all your patients in one unified platform.</p>
+                  <h3 className="text-xl font-semibold mb-2">
+                    Patient Management
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Easily track and manage all your patients in one unified
+                    platform.
+                  </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0 bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-blue-600">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-6 h-6 text-blue-600"
+                  >
                     <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold mb-2">Prescription Management</h3>
-                  <p className="text-gray-600 dark:text-gray-300">Write, update and manage prescriptions digitally with easy tracking.</p>
+                  <h3 className="text-xl font-semibold mb-2">
+                    Prescription Management
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Write, update and manage prescriptions digitally with easy
+                    tracking.
+                  </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0 bg-green-100 dark:bg-green-900/30 p-3 rounded-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-green-600">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-6 h-6 text-green-600"
+                  >
                     <circle cx="12" cy="12" r="10"></circle>
                     <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
                     <path d="M2 12h20"></path>
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold mb-2">Virtual Consultations</h3>
-                  <p className="text-gray-600 dark:text-gray-300">Conduct secure video consultations and follow-ups remotely.</p>
+                  <h3 className="text-xl font-semibold mb-2">
+                    Virtual Consultations
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Conduct secure video consultations and follow-ups remotely.
+                  </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0 bg-red-100 dark:bg-red-900/30 p-3 rounded-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-red-600">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-6 h-6 text-red-600"
+                  >
                     <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold mb-2">Treatment Analytics</h3>
-                  <p className="text-gray-600 dark:text-gray-300">Monitor treatment efficacy and patient adherence with detailed analytics.</p>
+                  <h3 className="text-xl font-semibold mb-2">
+                    Treatment Analytics
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Monitor treatment efficacy and patient adherence with
+                    detailed analytics.
+                  </p>
                 </div>
               </div>
             </div>
 
             <div className="flex justify-center mt-10">
-              <Link href="/SignIn?type=doctor&signup=true" className="inline-block">
-                <div className="group relative px-7 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 rounded-xl shadow-lg hover:shadow-indigo-500/30 transition-all duration-300 transform hover:-translate-y-1">
-                  <div className="flex items-center justify-center gap-3">
-                    <span className="text-lg font-semibold text-white">Join as Healthcare Provider</span>
-                    <ArrowRight size={20} className="text-white transition-transform group-hover:translate-x-1" />
-                  </div>
+              <button
+                onClick={handleDoctorSignup}
+                disabled={isDoctorLoading}
+                className="group relative inline-block px-7 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 rounded-xl shadow-lg hover:shadow-indigo-500/30 transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-80 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-center justify-center gap-3">
+                  {isDoctorLoading ? (
+                    <Loader2 className="w-5 h-5 text-white animate-spin" />
+                  ) : null}
+                  <span className="text-lg font-semibold text-white">
+                    {isDoctorLoading
+                      ? "Loading..."
+                      : "Join as Healthcare Provider"}
+                  </span>
+                  {!isDoctorLoading && (
+                    <ArrowRight
+                      size={20}
+                      className="text-white transition-transform group-hover:translate-x-1"
+                    />
+                  )}
                 </div>
-              </Link>
+              </button>
             </div>
           </div>
         </div>
@@ -251,7 +354,8 @@ export default function Home() {
                 quote:
                   "PharmaAI has transformed how I manage my medications. I never miss a dose now, and the health tracking features have given me insights I never had before.",
                 rating: 5,
-                image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=faces&q=80"
+                image:
+                  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=faces&q=80",
               },
               {
                 name: "Dr. Michael Chen",
@@ -259,7 +363,8 @@ export default function Home() {
                 quote:
                   "As a doctor, I've recommended PharmaAI to many of my patients. The improvement in medication adherence has been remarkable and leads to better outcomes.",
                 rating: 5,
-                image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150&h=150&fit=crop&crop=faces&q=80"
+                image:
+                  "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150&h=150&fit=crop&crop=faces&q=80",
               },
               {
                 name: "Robert Martinez",
@@ -267,7 +372,8 @@ export default function Home() {
                 quote:
                   "Managing medications for my elderly father used to be challenging. This app has simplified everything and gives me peace of mind knowing he's taking his medications correctly.",
                 rating: 4,
-                image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=faces&q=80"
+                image:
+                  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=faces&q=80",
               },
             ].map((testimonial, index) => (
               <div
@@ -378,23 +484,39 @@ export default function Home() {
 
             {/* Login Options with Enhanced Styling */}
             <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-6 mb-2">
-              <Link href="/SignIn?type=patient" className="w-full sm:w-auto">
-                <div className="group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all duration-300 transform hover:-translate-y-1 w-full">
-                  <div className="flex items-center justify-center gap-2">
+              <button
+                onClick={handlePatientLogin}
+                disabled={isPatientLoading}
+                className="w-full sm:w-auto group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-80 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-center justify-center gap-2">
+                  {isPatientLoading ? (
+                    <Loader2 size={18} className="text-white animate-spin" />
+                  ) : (
                     <User size={18} className="text-white" />
-                    <span className="font-medium text-white">Patient Login</span>
-                  </div>
+                  )}
+                  <span className="font-medium text-white">
+                    {isPatientLoading ? "Loading..." : "Patient Login"}
+                  </span>
                 </div>
-              </Link>
+              </button>
 
-              <Link href="/SignIn?type=doctor" className="w-full sm:w-auto">
-                <div className="group relative px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 rounded-xl shadow-lg hover:shadow-purple-500/30 transition-all duration-300 transform hover:-translate-y-1 w-full">
-                  <div className="flex items-center justify-center gap-2">
+              <button
+                onClick={handleDoctorSignup}
+                disabled={isDoctorLoading}
+                className="w-full sm:w-auto group relative px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 rounded-xl shadow-lg hover:shadow-purple-500/30 transition-all duration-300 transform hover:-translate-y-1 disabled:opacity-80 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-center justify-center gap-2">
+                  {isDoctorLoading ? (
+                    <Loader2 size={18} className="text-white animate-spin" />
+                  ) : (
                     <Stethoscope size={18} className="text-white" />
-                    <span className="font-medium text-white">Doctor Login</span>
-                  </div>
+                  )}
+                  <span className="font-medium text-white">
+                    {isDoctorLoading ? "Loading..." : "Doctor Login"}
+                  </span>
                 </div>
-              </Link>
+              </button>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
               Choose your account type to get started
@@ -407,7 +529,6 @@ export default function Home() {
       <footer className="bg-gray-100 dark:bg-gray-800 py-8">
         <div className="container mx-auto px-4">
           <div className="flex flex-col items-center justify-center space-y-6">
-
             <div className="flex justify-center gap-8">
               <Link
                 href="/terms"
