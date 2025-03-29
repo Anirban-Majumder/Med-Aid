@@ -1,15 +1,11 @@
 "use client"
 import { useContext, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Icon } from '@iconify/react';
-import { SessionContext } from "@/lib/supabase/usercontext";
 import { motion } from 'framer-motion';
 
 export default function AuthPage() {
-  const router = useRouter();
   const supabase = createClient();
-  const { sessionData } = useContext(SessionContext);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleLogin = async () => {

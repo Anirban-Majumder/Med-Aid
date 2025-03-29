@@ -26,7 +26,7 @@ export default function Home() {
 
   const handlePatientLogin = () => {
     setIsPatientLoading(true);
-    router.push("/SignIn?type=patient");
+    router.push("/SignIn");
   };
 
   const handleDoctorSignup = () => {
