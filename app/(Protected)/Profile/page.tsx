@@ -194,33 +194,19 @@ export default function Profile() {
         throw new Error('User ID not found');
       }
 
-      // Get current profile data to ensure we have the latest state
-      const { data: profileData, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
+      // Delete from medicines table
+      const { error: deleteError } = await supabase
+        .from('medicines')
+        .delete()
         .eq('user_id', sessionData.profile.user_id)
-        .single();
+        .eq('m_id', medicineId);
 
-      if (fetchError) throw fetchError;
-
-      // Update medicines in the profile object
-      const updatedMedicines = sessionData.medicines.filter(
-        (m: any) => (m.m_id || m.name) !== medicineId
-      );
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          medicine_info: updatedMedicines // Update the correct field name
-        })
-        .eq('user_id', sessionData.profile.user_id);
-
-      if (updateError) throw updateError;
+      if (deleteError) throw deleteError;
 
       // Update local state
       setSessionData((prev: any) => ({
         ...prev,
-        medicines: updatedMedicines
+        medicines: prev.medicines.filter((m: any) => (m.m_id || m.name) !== medicineId)
       }));
 
       toast.success('Medicine deleted successfully');
