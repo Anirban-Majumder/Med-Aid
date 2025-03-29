@@ -14,14 +14,23 @@ export async function POST(request: Request) {
             body = await request.json();
         } catch (parseError) {
             console.error("Failed to parse request body:", parseError);
-            return NextResponse.json({ 
-                error: 'Invalid JSON in request body', 
+            return NextResponse.json({
+                error: 'Invalid JSON in request body',
                 details: parseError instanceof Error ? parseError.message : 'Unknown parsing error'
             }, { status: 400 });
         }
 
-        // Validate webhook data
-        const { message } = body;
+        // Destructure both possible update types
+        const { message, my_chat_member } = body;
+
+        // Handle non-message updates separately
+        if (!message && my_chat_member) {
+            console.log("Received my_chat_member update:", my_chat_member);
+            // You can add additional logic here if needed.
+            return NextResponse.json({ success: true, message: "my_chat_member update received" });
+        }
+
+        // Validate webhook data for message updates
         if (!message) {
             console.error("Missing message field in webhook data:", body);
             return NextResponse.json({ error: 'Invalid webhook: missing message field' }, { status: 400 });
@@ -49,7 +58,7 @@ export async function POST(request: Request) {
 
         if (!userId) {
             console.warn(`No user ID provided in command: "${text}" from chat ID ${chatId}`);
-            
+
             // Send helpful message to user
             try {
                 await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -63,7 +72,7 @@ export async function POST(request: Request) {
             } catch (telegramError) {
                 console.error("Failed to send Telegram error message:", telegramError);
             }
-            
+
             return NextResponse.json({ error: "Missing user ID in start command" }, { status: 400 });
         }
 
@@ -78,7 +87,7 @@ export async function POST(request: Request) {
 
         if (supabaseError) {
             console.error(`Supabase error for user ${userId}:`, supabaseError);
-            
+
             // Try to notify user about the error
             try {
                 await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -92,13 +101,13 @@ export async function POST(request: Request) {
             } catch (telegramError) {
                 console.error("Failed to send Telegram error message:", telegramError);
             }
-            
+
             throw new Error(`Supabase Error: ${supabaseError.message}, Code: ${supabaseError.code}, Details: ${JSON.stringify(supabaseError.details)}`);
         }
 
         if (!updateData || updateData.length === 0) {
             console.warn(`No profile found for user ID: ${userId}`);
-            
+
             // Notify user
             try {
                 await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
@@ -112,7 +121,7 @@ export async function POST(request: Request) {
             } catch (telegramError) {
                 console.error("Failed to send Telegram not found message:", telegramError);
             }
-            
+
             return NextResponse.json({ error: "User profile not found" }, { status: 404 });
         }
 
@@ -126,7 +135,7 @@ export async function POST(request: Request) {
                     text: `✅ Hi ${firstName}, your Telegram notifications are now enabled!`,
                 }),
             });
-            
+
             if (!telegramResponse.ok) {
                 const telegramErrorData = await telegramResponse.json();
                 console.error("Telegram API error:", telegramErrorData);
@@ -138,8 +147,8 @@ export async function POST(request: Request) {
         }
 
         console.log(`Successfully linked Telegram chat ID ${chatId} to user ${userId}`);
-        return NextResponse.json({ 
-            success: true, 
+        return NextResponse.json({
+            success: true,
             message: "Telegram ID linked successfully",
             userId,
             chatId
@@ -147,15 +156,15 @@ export async function POST(request: Request) {
     } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
         const errorStack = err instanceof Error ? err.stack : undefined;
-        
+
         console.error("Error handling Telegram webhook:", {
             message: errorMessage,
             stack: errorStack,
             timestamp: new Date().toISOString()
         });
-        
-        return NextResponse.json({ 
-            error: "Internal Server Error", 
+
+        return NextResponse.json({
+            error: "Internal Server Error",
             message: errorMessage,
             timestamp: new Date().toISOString()
         }, { status: 500 });
