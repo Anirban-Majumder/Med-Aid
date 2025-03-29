@@ -3,7 +3,7 @@
 import { useState, useEffect, KeyboardEvent, ChangeEvent, useContext } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { SessionContext } from "@/lib/supabase/usercontext";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X } from "lucide-react"; // Import for delete icon
@@ -41,31 +41,58 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
         });
         if (response.ok) {
           const data = await response.json();
-          // Assuming "ocr" is a JSON-string representing a valid JSON array
-          const parsed: OCRItem[] = JSON.parse(data.ocr);
+
+          // Handle JSON parsing with error handling
+          let parsed: OCRItem[] = [];
+          try {
+            // Try to parse the OCR response
+            parsed = JSON.parse(data.ocr);
+          } catch (parseError) {
+            console.error("Error parsing OCR JSON:", parseError);
+            // Set default empty array
+            parsed = [];
+          }
+
           const medicinesList: Medicine[] = [];
           const symptomsSet = new Set<string>();
-          parsed.forEach((item) => {
-            if (item.symptom) {
-              item.symptom.split(",").forEach((s) => {
-                const trimmed = s.trim();
-                if (trimmed) symptomsSet.add(trimmed);
-              });
-            }
-            if (Array.isArray(item.meds)) {
-              item.meds.forEach((med) => {
-                medicinesList.push({
-                  name: med.name || "",
-                  description: med.description || "",
-                  eat_upto: med.eat_upto || "",
-                  m_id: med.m_id || "12131",
-                  times_to_eat: med.times_to_eat || ["2000"],
+
+          if (Array.isArray(parsed)) {
+            parsed.forEach((item) => {
+              if (item && item.symptom) {
+                item.symptom.split(",").forEach((s) => {
+                  const trimmed = s.trim();
+                  if (trimmed) symptomsSet.add(trimmed);
                 });
-              });
-            }
-          });
+              }
+              if (item && Array.isArray(item.meds)) {
+                item.meds.forEach((med) => {
+                  medicinesList.push({
+                    name: med.name || "",
+                    description: med.description || "",
+                    eat_upto: med.eat_upto || "",
+                    m_id: med.m_id || "12131",
+                    times_to_eat: med.times_to_eat || ["2000"],
+                  });
+                });
+              }
+            });
+          }
+
           setSymptoms(Array.from(symptomsSet));
-          setMedicines(medicinesList);
+
+          // If no medicines were found, provide a default template
+          if (medicinesList.length === 0) {
+            setMedicines([{
+              name: "",
+              description: "",
+              eat_upto: new Date().toISOString().split('T')[0],
+              times_to_eat: ["0800"],
+              m_id: Date.now().toString()
+            }]);
+          } else {
+            setMedicines(medicinesList);
+          }
+
           setLoading(false);
           setIsOpen(true);
         } else {
@@ -89,7 +116,7 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
   };
 
   const handleAddMedicine = () => {
-    setMedicines([...medicines, { name: "", eat_upto: "", times_to_eat: [], description: ""}]);
+    setMedicines([...medicines, { name: "", eat_upto: "", times_to_eat: [], description: "" }]);
   };
 
   const handleAddSymptom = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -100,9 +127,40 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
     }
   };
 
+  const handleAddTimeSlot = (index: number) => {
+    const updatedMedicines = [...medicines];
+    updatedMedicines[index] = {
+      ...updatedMedicines[index],
+      times_to_eat: [...(updatedMedicines[index].times_to_eat || []), ""],
+    };
+    setMedicines(updatedMedicines);
+  };
+
+  const handleTimeChange = (medicineIndex: number, timeIndex: number, value: string) => {
+    const updatedMedicines = [...medicines];
+    const timesList = [...updatedMedicines[medicineIndex].times_to_eat];
+    timesList[timeIndex] = value.replace(":", ""); // Convert HH:mm to HHMM format
+    updatedMedicines[medicineIndex] = {
+      ...updatedMedicines[medicineIndex],
+      times_to_eat: timesList,
+    };
+    setMedicines(updatedMedicines);
+  };
+
+  const handleRemoveTimeSlot = (medicineIndex: number, timeIndex: number) => {
+    const updatedMedicines = [...medicines];
+    const timesList = [...updatedMedicines[medicineIndex].times_to_eat];
+    timesList.splice(timeIndex, 1);
+    updatedMedicines[medicineIndex] = {
+      ...updatedMedicines[medicineIndex],
+      times_to_eat: timesList,
+    };
+    setMedicines(updatedMedicines);
+  };
+
   const handleFinalSave = async (): Promise<void> => {
     setIsSaving(true);
-    const user_id = sessionData.session?.user.id
+    const user_id = sessionData.session?.user.id;
     if (!user_id) {
       console.error("User session not found.");
       return;
@@ -118,13 +176,12 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
     if (updateError) {
       console.error("Error updating profile data:", updateError);
       return;
-    }
-    else {
-      setSessionData(prev => ({
+    } else {
+      setSessionData((prev) => ({
         ...prev,
         profile: {
           ...prev.profile,
-          symptoms: newSymptoms
+          symptoms: newSymptoms,
         } as Profile, // Explicitly cast to Profile to satisfy TypeScript
       }));
       console.log("Symptoms added successfully");
@@ -145,7 +202,7 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
         console.error("Error inserting medicine:", error);
         return;
       } else {
-        setSessionData(prev => ({
+        setSessionData((prev) => ({
           ...prev,
           medicines: [...prev.medicines, med],
         }));
@@ -169,18 +226,25 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
     setShowWarning(true);
   };
 
+  const handleManualMedicine = () => {
+    setMedicines([{
+      name: "",
+      description: "",
+      eat_upto: new Date().toISOString().split('T')[0],
+      times_to_eat: ["0800"],
+      m_id: Date.now().toString()
+    }]);
+    setIsOpen(true);
+  };
+
   return (
     <>
       {/* OCR and Form Modal */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-md p-6 bg-white dark:bg-gray-900 rounded-lg shadow-lg">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Edit Details
-          </h2>
+        <DialogContent className="max-w-md p-6 bg-white dark:bg-gray-900 rounded-lg shadow-lg max-h-[90vh] overflow-y-auto">
+          <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Edit Details</DialogTitle>
 
-          <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Confirm your symptoms:
-          </h4>
+          <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Confirm your symptoms:</h4>
           <div className="mt-2">
             <Input
               placeholder="Type a symptom and press Enter"
@@ -206,7 +270,7 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
               Confirm your medicine details:
             </h4>
             {medicines.map((medicine, index) => (
-              <div key={index} className="flex flex-wrap gap-2 mb-1">
+              <div key={index} className="flex flex-wrap gap-2 mb-4">
                 <Input
                   placeholder="Medicine Name"
                   value={medicine.name}
@@ -221,24 +285,65 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     handleMedicineChange(index, "description", e.target.value)
                   }
-                  className="w-24"
+                  className="w-full"
                 />
-                <Input
-                  placeholder="Times to eat (comma separated)"
-                  value={medicine.times_to_eat.join(",").toString()}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    handleMedicineChange(index, "times_to_eat", e.target.value.split(",")[-1])
-                  }
-                  className="w-24"
-                />
+
+                <div className="flex flex-col gap-2 w-full">
+                  <div className="flex justify-between items-center">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Times to take medicine (24-hour format):
+                    </label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddTimeSlot(index)}
+                      className="h-8 px-2"
+                    >
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        />
+                      </svg>
+                      Add Time
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {medicine.times_to_eat.map((time, timeIndex) => (
+                      <div key={timeIndex} className="flex items-center">
+                        <Input
+                          type="time"
+                          value={time ? `${time.slice(0, 2)}:${time.slice(2, 4)}` : ""}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                            handleTimeChange(index, timeIndex, e.target.value)
+                          }
+                          className="w-32"
+                        />
+                        <button
+                          onClick={() => handleRemoveTimeSlot(index, timeIndex)}
+                          className="ml-1 text-gray-500 hover:text-red-500"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                    {medicine.times_to_eat.length === 0 && (
+                      <span className="text-sm text-gray-500 italic">No times added yet</span>
+                    )}
+                  </div>
+                </div>
+
                 <Input
                   placeholder="Duration"
                   type="date"
                   value={medicine.eat_upto}
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    handleMedicineChange(index, "duration", e.target.value)
+                    handleMedicineChange(index, "eat_upto", e.target.value)
                   }
-                  className="border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 p-2 mb-4 w-full rounded text-gray-800 dark:text-white"
+                  className="w-full"
                 />
               </div>
             ))}
@@ -250,7 +355,7 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
 
           <Button
             onClick={handleSave}
-            className="px-4 py-2 bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-600 transition"
+            className="px-4 py-2 bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-600 transition mt-6"
           >
             Save
           </Button>
@@ -259,9 +364,9 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
         {showWarning && (
           <Dialog open={showWarning} onOpenChange={setShowWarning}>
             <DialogContent className="max-w-md p-6 bg-white dark:bg-gray-900 rounded-lg shadow-lg">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Are you sure you wish to proceed?
-              </h2>
+              <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                Confirm Your Changes
+              </DialogTitle>
               <p className="mb-4">
                 Please be very sure before you proceed. OCR processing may introduce inaccuracies.
                 Kindly double-check your inputs.
@@ -277,10 +382,19 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
         )}
       </Dialog>
 
+      {/* Manual Entry Button */}
+      <Button
+        onClick={handleManualMedicine}
+        className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg shadow hover:shadow-lg transition-all"
+      >
+        Add Medicine Manually
+      </Button>
+
       {/* Loading Popup Modal */}
       {loading && (
-        <Dialog open={true} onOpenChange={() => {}}>
+        <Dialog open={true} onOpenChange={() => { }}>
           <DialogContent className="max-w-md p-6 bg-white dark:bg-gray-900 rounded-lg shadow-lg">
+            <DialogTitle className="sr-only">Loading</DialogTitle>
             <div className="flex flex-col items-center">
               <svg
                 className="animate-spin h-10 w-10 text-gray-900 dark:text-white"
@@ -288,7 +402,14 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
                 fill="none"
                 viewBox="0 0 24 24"
               >
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
                 <path
                   className="opacity-75"
                   fill="currentColor"
@@ -303,15 +424,23 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
 
       {/* Saving Popup Modal */}
       {isSaving && (
-        <Dialog open={isSaving} onOpenChange={() => {}}>
+        <Dialog open={isSaving} onOpenChange={() => { }}>
           <DialogContent className="max-w-md p-6 bg-white dark:bg-gray-900 rounded-lg shadow-lg flex flex-col items-center">
+            <DialogTitle className="sr-only">Saving</DialogTitle>
             <svg
               className="animate-spin h-10 w-10 text-gray-900 dark:text-white"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
             >
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
               <path
                 className="opacity-75"
                 fill="currentColor"
