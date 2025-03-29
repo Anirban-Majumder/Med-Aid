@@ -59,7 +59,7 @@ export default function AdminVerifyPage() {
                     // If not admin, redirect to dashboard
                     if (!isAdminUser) {
                         setIsAdmin(false);
-                        router.push('/Protected/Dashboard');
+                        router.push('/Dashboard'); // Changed from '/Protected/Dashboard' to '/Dashboard'
                         return;
                     }
 
@@ -67,7 +67,8 @@ export default function AdminVerifyPage() {
                     // Fetch pending doctor applications
                     await fetchPendingApplications();
                 } catch (error) {
-                    console.error('Error in admin verification:', error);
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+                    console.error('Error in admin verification:', errorMessage);
                     router.push('/SignIn');
                 } finally {
                     setIsLoading(false);
@@ -90,12 +91,15 @@ export default function AdminVerifyPage() {
                 .order('created_at', { ascending: false });
 
             if (error) {
+                console.error('Database error fetching applications:', error.message);
                 throw error;
             }
 
+            console.log('Fetched applications:', data?.length || 0);
             setApplications(data || []);
         } catch (error) {
-            console.error('Error fetching doctor applications:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            console.error('Error fetching doctor applications:', errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -112,17 +116,20 @@ export default function AdminVerifyPage() {
                 })
                 .eq('id', doctorId);
 
-            if (error) throw error;
+            if (error) {
+                console.error('Database error approving doctor:', error.message);
+                throw error;
+            }
 
             // Refresh the applications list
             await fetchPendingApplications();
             setSelectedDoctor(null);
 
             // Send notification to the doctor (if you have a notification system)
-            // This is a placeholder for when you implement notifications
             console.log('Doctor approved and notification will be sent');
         } catch (error) {
-            console.error('Error approving doctor:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            console.error('Error approving doctor:', errorMessage);
             alert('Error approving the doctor. Please try again.');
         }
     };
@@ -137,13 +144,17 @@ export default function AdminVerifyPage() {
                 .delete()
                 .eq('id', doctorId);
 
-            if (error) throw error;
+            if (error) {
+                console.error('Database error rejecting doctor:', error.message);
+                throw error;
+            }
 
             // Refresh the applications list
             await fetchPendingApplications();
             setSelectedDoctor(null);
         } catch (error) {
-            console.error('Error rejecting doctor:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            console.error('Error rejecting doctor:', errorMessage);
             alert('Error rejecting the application. Please try again.');
         }
     };
@@ -176,7 +187,7 @@ export default function AdminVerifyPage() {
                     <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
                     <p className="mb-6 text-zinc-600 dark:text-zinc-400">You don't have permission to access this page.</p>
                     <Button asChild>
-                        <Link href="/Protected/Dashboard">Go to Dashboard</Link>
+                        <Link href="/Dashboard">Go to Dashboard</Link>
                     </Button>
                 </Card>
             </div>

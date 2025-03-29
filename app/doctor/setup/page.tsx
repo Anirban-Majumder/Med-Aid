@@ -21,15 +21,15 @@ interface FormData {
     phone: string;
     address: string;
     bio: string;
-  }
+}
 
-  const formatSpecialties = (specialtyString: string): string[] => {
+const formatSpecialties = (specialtyString: string): string[] => {
     return specialtyString
         .split(',')
         .map(s => s.trim())
         .filter(s => s.length > 0);
 };
-  
+
 export default function DoctorSetup() {
     const router = useRouter();
     const supabase = createClient();
@@ -366,24 +366,24 @@ export default function DoctorSetup() {
 
                                 {/* Professional Information */}
                                 <div className="space-y-3">
-    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-        Medical Specialties <span className="text-red-500">*</span>
-    </label>
-    <Input
-        type="text"
-        name="specialty"
-        value={formData.specialty}
-        onChange={handleChange}
-        className={formErrors.specialty ? "border-red-500" : ""}
-        placeholder="e.g., Cardiology, Pediatrics, Internal Medicine"
-    />
-    <span className="text-xs text-zinc-500 dark:text-zinc-400">
-        Separate multiple specialties with commas
-    </span>
-    {formErrors.specialty && (
-        <p className="text-red-500 text-xs mt-1">{formErrors.specialty}</p>
-    )}
-</div>
+                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                        Medical Specialties <span className="text-red-500">*</span>
+                                    </label>
+                                    <Input
+                                        type="text"
+                                        name="specialty"
+                                        value={formData.specialty}
+                                        onChange={handleChange}
+                                        className={formErrors.specialty ? "border-red-500" : ""}
+                                        placeholder="e.g., Cardiology, Pediatrics, Internal Medicine"
+                                    />
+                                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                        Separate multiple specialties with commas
+                                    </span>
+                                    {formErrors.specialty && (
+                                        <p className="text-red-500 text-xs mt-1">{formErrors.specialty}</p>
+                                    )}
+                                </div>
 
                                 <div className="space-y-3">
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -469,7 +469,7 @@ export default function DoctorSetup() {
                             <div className="space-y-3">
                                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                                     Professional Bio
-                                </label>
+                                </label> <span className="text-red-500">*</span>
                                 <textarea
                                     name="bio"
                                     value={formData.bio}
