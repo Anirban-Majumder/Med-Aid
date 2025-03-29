@@ -14,6 +14,7 @@ export default function ImageUpload() {
   const { sessionData, setSessionData } = useContext(SessionContext);
   const [isOpen, setIsOpen] = useState(false);
   const [isManualOpen, setIsManualOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [image, setImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [ocrImgUrl, setOcrImgUrl] = useState<string | null>(null);
@@ -23,7 +24,7 @@ export default function ImageUpload() {
     description: "",
     eat_upto: "",
     m_id: "",
-    times_to_eat: [],
+    times_to_eat: ["0800"], // Default to one time slot with 8:00 AM in military format
   });
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -172,11 +173,16 @@ export default function ImageUpload() {
 
   const handleDataSave = async () => {
     if (!medicineName || !input.m_id) return;
+
+    setIsSaving(true);
+
     const user_id = sessionData.session?.user.id;
     if (!user_id) {
       console.error("User session not found.");
+      setIsSaving(false);
       return;
     }
+
     const { data: updateData, error: updateError } = await supabase
       .from("medicines")
       .insert({
@@ -193,17 +199,64 @@ export default function ImageUpload() {
       console.error("Error updating meds:", updateError);
     } else {
       console.log("Updated meds successfully:", updateData);
+
+      // Add new medicine to session data
+      setSessionData((prev) => ({
+        ...prev,
+        medicines: [
+          ...prev.medicines,
+          {
+            name: medicineName,
+            description: input.description,
+            times_to_eat: input.times_to_eat,
+            eat_upto: input.eat_upto,
+            m_id: input.m_id,
+          },
+        ],
+      }));
     }
+
+    setIsSaving(false);
     setIsManualOpen(false);
     setIsOpen(false);
   };
 
   const handleSave = async () => {
     if (!selectedFile) return;
+
+    setIsSaving(true);
+
     const uploadedUrl = await uploadToPrescriptionBucket(selectedFile);
     if (uploadedUrl) {
       setOcrImgUrl(uploadedUrl);
     }
+
+    setIsSaving(false);
+  };
+
+  const handleAddTimeSlot = () => {
+    setInput((prev) => ({
+      ...prev,
+      times_to_eat: [...prev.times_to_eat, ""],
+    }));
+  };
+
+  const handleTimeChange = (index: number, value: string) => {
+    const newTimes = [...input.times_to_eat];
+    newTimes[index] = value.replace(":", ""); // Convert HH:mm to HHMM format
+    setInput((prev) => ({
+      ...prev,
+      times_to_eat: newTimes,
+    }));
+  };
+
+  const handleRemoveTimeSlot = (index: number) => {
+    const newTimes = [...input.times_to_eat];
+    newTimes.splice(index, 1);
+    setInput((prev) => ({
+      ...prev,
+      times_to_eat: newTimes,
+    }));
   };
 
   return (
@@ -344,18 +397,42 @@ export default function ImageUpload() {
                 )}
               </div>
 
-              <Input
-                type="text"
-                placeholder="Times to eat (e.g. Morning, Afternoon, Night)"
-                value={input.times_to_eat.join(", ")}
-                onChange={(e) =>
-                  setInput((prev) => ({
-                    ...prev,
-                    times_to_eat: e.target.value.split(",").map((t) => t.trim()),
-                  }))
-                }
-                className="border-2 border-cyan-200 dark:border-cyan-800 focus:border-cyan-500 rounded-xl px-4 py-3"
-              />
+              <div className="flex flex-col gap-2 w-full">
+                <div className="flex justify-between items-center">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Times to take medicine (24-hour format):
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAddTimeSlot}
+                    className="h-8 px-2 flex items-center gap-1 text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800 rounded-lg hover:bg-cyan-50 dark:hover:bg-cyan-900/30 transition-colors"
+                  >
+                    <Icon icon="mdi:plus" className="w-4 h-4" />
+                    <span className="text-sm">Add Time</span>
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2 items-center">
+                  {input.times_to_eat.map((time, index) => (
+                    <div key={index} className="flex items-center">
+                      <Input
+                        type="time"
+                        value={time ? `${time.slice(0, 2)}:${time.slice(2, 4)}` : ""}
+                        onChange={(e) => handleTimeChange(index, e.target.value)}
+                        className="w-32 border-2 border-cyan-200 dark:border-cyan-800 focus:border-cyan-500 rounded-lg px-3 py-2"
+                      />
+                      <button
+                        onClick={() => handleRemoveTimeSlot(index)}
+                        className="ml-1 text-gray-500 hover:text-red-500 transition-colors"
+                      >
+                        <Icon icon="mdi:close" className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {input.times_to_eat.length === 0 && (
+                    <span className="text-sm text-gray-500 italic">No times added yet</span>
+                  )}
+                </div>
+              </div>
 
               <Input
                 type="date"
@@ -374,11 +451,67 @@ export default function ImageUpload() {
 
               <button
                 onClick={handleDataSave}
-                className="w-full bg-gradient-to-r from-cyan-500 to-cyan-600 text-white hover:from-cyan-600 hover:to-cyan-700 rounded-xl px-6 py-3.5 transition-all duration-300 ease-in-out shadow-lg hover:shadow-cyan-300/30 font-medium mt-4"
+                disabled={isSaving}
+                className="w-full bg-gradient-to-r from-cyan-500 to-cyan-600 text-white hover:from-cyan-600 hover:to-cyan-700 rounded-xl px-6 py-3.5 transition-all duration-300 ease-in-out shadow-lg hover:shadow-cyan-300/30 font-medium mt-4 disabled:opacity-70 flex items-center justify-center"
               >
-                Save Medicine
+                {isSaving ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  "Save Medicine"
+                )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Saving Indicator */}
+      {isSaving && !isManualOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50">
+          <div className="bg-white dark:bg-zinc-900 rounded-xl p-6 shadow-xl flex flex-col items-center">
+            <svg
+              className="animate-spin h-10 w-10 text-cyan-500 mb-4"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            <p className="text-gray-700 dark:text-gray-300 font-medium">Saving medicine...</p>
           </div>
         </div>
       )}
