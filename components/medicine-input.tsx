@@ -27,6 +27,12 @@ const calculateEndDate = (duration: string): string => {
   endDate.setDate(endDate.getDate() + days);
   return endDate.toISOString().split('T')[0];
 };
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
 
 export default function OCRModal({ imgFile }: MedicineModalProps) {
   const supabase = createClient();
@@ -81,7 +87,7 @@ export default function OCRModal({ imgFile }: MedicineModalProps) {
                 name: med.name || "",
                 description: med.description || "",
                 eat_upto: med.eat_for !== "null" ? calculateEndDate(med.eat_for + "d") : new Date().toISOString().split('T')[0],
-                m_id: Date.now().toString(),
+                m_id: generateUUID(),
                 times_to_eat: Array.isArray(med.times_to_eat) ? med.times_to_eat : ["0800"],
                 side_effect: Array.isArray(med.side_effect) ? med.side_effect : [],
                 uses: med.uses || "",
