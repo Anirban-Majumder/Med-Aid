@@ -13,7 +13,7 @@ import {
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { MapPin, SlidersHorizontal, TestTube2 } from "lucide-react"
+import { Loader2, MapPin, SlidersHorizontal, TestTube2 } from "lucide-react"
 import { DiagnosticData } from "@/lib/types"
 import type { LabResult } from "@/lib/types"
 import { SearchSkeleton } from "@/components/search-skeleton"
@@ -26,6 +26,7 @@ export default function Labsearch() {
   const [suggestions, setSuggestions] = useState<LabResult[]>([])
   const [testData, setTestData] = useState<DiagnosticData>()
   const [loading, setLoading] = useState(false)
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false)
   const [priceRange, setPriceRange] = useState([0, 5000])
   const [inStock, setInStock] = useState(true)
   const [pin, setPin] = useState("700001") // Default pin code
@@ -85,15 +86,17 @@ export default function Labsearch() {
       return
     }
 
+    setSuggestionsLoading(true)
     try {
       const response = await fetch(`/api/labSearch?name=${encodeURIComponent(search)}`)
       const data = await response.json()
-      //have to check for none
       setSuggestions(data.results[0].hits)
       setShowSuggestions(true)
     } catch (error) {
       console.error("Failed to fetch suggestions:", error)
       setSuggestions([])
+    } finally {
+      setSuggestionsLoading(false)
     }
   }, [])
 
@@ -119,11 +122,20 @@ export default function Labsearch() {
       return
     }
 
+    if (query.length > 0) {
+      setSuggestionsLoading(true)
+    }
+
     const debounceTimer = setTimeout(() => {
       fetchSuggestions(query)
     }, 300)
 
-    return () => clearTimeout(debounceTimer)
+    return () => {
+      clearTimeout(debounceTimer)
+      if (debounceTimer) {
+        setSuggestionsLoading(false)
+      }
+    }
   }, [query, fetchSuggestions])
 
   const containerVariants = {
@@ -191,10 +203,15 @@ export default function Labsearch() {
                   onFocus={() => setShowSuggestions(true)}
                   className="h-12 pl-10 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-xl shadow-sm transition-all duration-200"
                 />
+                {suggestionsLoading && query.length > 0 && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+                  </div>
+                )}
               </motion.div>
 
               <AnimatePresence>
-                {showSuggestions && suggestions.length > 0 && (
+                {showSuggestions && query.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -202,7 +219,12 @@ export default function Labsearch() {
                     className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg"
                   >
                     <div className="p-1">
-                      {suggestions.length === 0 ? (
+                      {suggestionsLoading ? (
+                        <div className="px-4 py-3 flex items-center justify-center">
+                          <Loader2 className="h-5 w-5 text-blue-500 animate-spin mr-2" />
+                          <span className="text-sm text-muted-foreground">Searching for labs...</span>
+                        </div>
+                      ) : suggestions.length === 0 ? (
                         <div className="px-2 py-1 text-sm text-muted-foreground">No results found</div>
                       ) : (
                         suggestions.map((suggestion) => (

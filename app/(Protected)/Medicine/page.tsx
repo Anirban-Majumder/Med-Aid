@@ -20,7 +20,7 @@ import {
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { MapPin, SlidersHorizontal } from "lucide-react"
+import { MapPin, SlidersHorizontal, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Medicine, MedSearchSuggestion } from "@/lib/types"
 import { SearchSkeleton } from "@/components/search-skeleton"
@@ -34,6 +34,7 @@ export default function MedicineSearch() {
   const [suggestions, setSuggestions] = useState<MedSearchSuggestion[]>([])
   const [medicines, setMedicines] = useState<Medicine[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
   const [priceRange, setPriceRange] = useState([0, 5000])
   const [inStock, setInStock] = useState(true)
   const [pin, setPin] = useState("700001") // Default pin code
@@ -41,11 +42,7 @@ export default function MedicineSearch() {
   const [error, setError] = useState<string | null>(null)
   const searchRef = useRef<HTMLDivElement>(null)
   const skipFetchSuggestions = useRef(false)
-  const searchParams = useSearchParams() // Add this line
-  
-  // ...existing code for fetchPinFromCoords, getUserLocation, etc...
-
-  // Add this new useEffect for URL parameters
+  const searchParams = useSearchParams()
 
   const fetchPinFromCoords = async (lat: number, lon: number) => {
     try {
@@ -99,6 +96,7 @@ export default function MedicineSearch() {
     }
 
     try {
+      setLoadingSuggestions(true)
       const response = await fetch(`/api/medPriceSearch?name=${encodeURIComponent(search)}`)
       const data = await response.json()
       setSuggestions(data)
@@ -106,6 +104,8 @@ export default function MedicineSearch() {
     } catch (error) {
       console.error("Failed to fetch suggestions:", error)
       setSuggestions([])
+    } finally {
+      setLoadingSuggestions(false)
     }
   }, [])
 
@@ -202,7 +202,7 @@ export default function MedicineSearch() {
   useEffect(() => {
     const nameParam = searchParams.get('name')
     const packParam = searchParams.get('pack')
-    
+
     if (nameParam && packParam) {
       setQuery(nameParam)
       skipFetchSuggestions.current = true
@@ -215,6 +215,57 @@ export default function MedicineSearch() {
       parseFloat(med.finalCharge) >= priceRange[0] &&
       parseFloat(med.finalCharge) <= priceRange[1]
   )
+
+  // Get sorted medicines for the featured cards
+  const getCheapestMedicine = () => {
+    if (medicines.length === 0) return null;
+    return [...medicines].sort((a, b) =>
+      parseFloat(a.finalCharge) - parseFloat(b.finalCharge)
+    )[0];
+  };
+
+  const getFastestMedicine = () => {
+    if (medicines.length === 0) return null;
+    // Sort by delivery time - assuming format like "2-3 days" or "1 day"
+    return [...medicines].sort((a, b) => {
+      const getTimeValue = (time: string) => {
+        const match = time.match(/(\d+)(?:-(\d+))?\s+(\w+)/);
+        if (!match) return 999; // Default high value for unknown format
+        const lowerValue = parseInt(match[1]);
+        return lowerValue;
+      };
+      return getTimeValue(a.deliveryTime) - getTimeValue(b.deliveryTime);
+    })[0];
+  };
+
+  const getBestMedicine = () => {
+    if (medicines.length === 0) return null;
+    // Best medicine is a balance of price and delivery time
+    return [...medicines].sort((a, b) => {
+      const priceA = parseFloat(a.finalCharge);
+      const priceB = parseFloat(b.finalCharge);
+
+      const getTimeValue = (time: string) => {
+        const match = time.match(/(\d+)(?:-(\d+))?\s+(\w+)/);
+        if (!match) return 999;
+        const lowerValue = parseInt(match[1]);
+        return lowerValue;
+      };
+
+      const timeA = getTimeValue(a.deliveryTime);
+      const timeB = getTimeValue(b.deliveryTime);
+
+      // Create a score that balances price and time (lower is better)
+      const scoreA = (priceA / 500) + (timeA * 2); // Weight time more
+      const scoreB = (priceB / 500) + (timeB * 2);
+
+      return scoreA - scoreB;
+    })[0];
+  };
+
+  const cheapestMedicine = getCheapestMedicine();
+  const fastestMedicine = getFastestMedicine();
+  const bestMedicine = getBestMedicine();
 
   const fadeInUp = {
     initial: { opacity: 0, y: 20 },
@@ -249,45 +300,60 @@ export default function MedicineSearch() {
                   className="h-12 pl-4 pr-10 w-full"
                 />
                 <div className="absolute right-3 top-3 text-muted-foreground">
-                  <svg
-                    width="15"
-                    height="15"
-                    viewBox="0 0 15 15"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                  >
-                    <path
-                      d="M10 6.5C10 8.433 8.433 10 6.5 10C4.567 10 3 8.433 3 6.5C3 4.567 4.567 3 6.5 3C8.433 3 10 4.567 10 6.5ZM9.30884 10.0159C8.53901 10.6318 7.56251 11 6.5 11C4.01472 11 2 8.98528 2 6.5C2 4.01472 4.01472 2 6.5 2C8.98528 2 11 4.01472 11 6.5C11 7.56251 10.6318 8.53901 10.0159 9.30884L12.8536 12.1464C13.0488 12.3417 13.0488 12.6583 12.8536 12.8536C12.6583 13.0488 12.3417 13.0488 12.1464 12.8536L9.30884 10.0159Z"
-                      fill="currentColor"
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                  {loadingSuggestions ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 15 15"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                    >
+                      <path
+                        d="M10 6.5C10 8.433 8.433 10 6.5 10C4.567 10 3 8.433 3 6.5C3 4.567 4.567 3 6.5 3C8.433 3 10 4.567 10 6.5ZM9.30884 10.0159C8.53901 10.6318 7.56251 11 6.5 11C4.01472 11 2 8.98528 2 6.5C2 4.01472 4.01472 2 6.5 2C8.98528 2 11 4.01472 11 6.5C11 7.56251 10.6318 8.53901 10.0159 9.30884L12.8536 12.1464C13.0488 12.3417 13.0488 12.6583 12.8536 12.8536C12.6583 13.0488 12.3417 13.0488 12.1464 12.8536L9.30884 10.0159Z"
+                        fill="currentColor"
+                        fillRule="evenodd"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  )}
                 </div>
               </div>
-              {showSuggestions && suggestions.length > 0 && (
+              {showSuggestions && (
                 <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-900 border rounded-md shadow-xl z-[99999] max-h-[60vh] overflow-y-auto">
                   <div className="p-1">
-                    {suggestions.map((suggestion, index) => (
-                      <div
-                        key={`${suggestion.medicineName}-${suggestion.packSize}-${index}`}
-                        className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-sm cursor-pointer"
-                        onClick={() => {
-                          skipFetchSuggestions.current = true;
-                          setQuery(suggestion.medicineName);
-                          setShowSuggestions(false);
-                          fetchMedicineDetails(suggestion.medicineName, suggestion.packSize);
-                        }}
-                      >
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {suggestion.medicineName}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {suggestion.packSize}
-                        </div>
+                    {loadingSuggestions ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Searching medicines...</span>
                       </div>
-                    ))}
+                    ) : suggestions.length > 0 ? (
+                      suggestions.map((suggestion, index) => (
+                        <div
+                          key={`${suggestion.medicineName}-${suggestion.packSize}-${index}`}
+                          className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-sm cursor-pointer"
+                          onClick={() => {
+                            skipFetchSuggestions.current = true;
+                            setQuery(suggestion.medicineName);
+                            setShowSuggestions(false);
+                            fetchMedicineDetails(suggestion.medicineName, suggestion.packSize);
+                          }}
+                        >
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {suggestion.medicineName}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {suggestion.packSize}
+                          </div>
+                        </div>
+                      ))
+                    ) : query.length > 0 ? (
+                      <div className="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                        No medicines found
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               )}
@@ -400,16 +466,12 @@ export default function MedicineSearch() {
                       }
                     }}
                   >
-                    {["Cheapest", "Fastest", "Best"].map((type, index) => {
-                      const med = medicines[index]
-                      if (!med) return null
-
-                      // Calculate highlight color based on type
-                      const highlightColor = type === "Cheapest"
-                        ? "from-green-500 to-green-700"
-                        : type === "Fastest"
-                          ? "from-blue-500 to-blue-700"
-                          : "from-purple-500 to-purple-700"
+                    {[
+                      { type: "Cheapest", medicine: cheapestMedicine, color: "from-green-500 to-green-700" },
+                      { type: "Fastest", medicine: fastestMedicine, color: "from-blue-500 to-blue-700" },
+                      { type: "Best", medicine: bestMedicine, color: "from-purple-500 to-purple-700" }
+                    ].map(({ type, medicine, color }) => {
+                      if (!medicine) return null;
 
                       return (
                         <motion.div
@@ -426,16 +488,16 @@ export default function MedicineSearch() {
                             <div className={cn(
                               "absolute top-0 right-0 px-3 py-1 text-xs rounded-bl-lg text-white",
                               "bg-gradient-to-r",
-                              highlightColor
+                              color
                             )}>
                               {type}
                             </div>
                             <CardHeader>
                               <CardTitle className="flex flex-col gap-2">
-                                <span className="text-2xl font-bold">₹{med.finalCharge}</span>
+                                <span className="text-2xl font-bold">₹{medicine.finalCharge}</span>
                                 <div className="flex justify-between items-center">
-                                  <span className="text-sm text-muted-foreground">{med.name}</span>
-                                  <span className="text-sm font-medium">{med.deliveryTime}</span>
+                                  <span className="text-sm text-muted-foreground">{medicine.name}</span>
+                                  <span className="text-sm font-medium">{medicine.deliveryTime}</span>
                                 </div>
                               </CardTitle>
                             </CardHeader>
@@ -443,11 +505,11 @@ export default function MedicineSearch() {
                               <div className="text-sm text-muted-foreground">
                                 <div className="flex justify-between">
                                   <span>Medicine Price:</span>
-                                  <span>₹{med.price}</span>
+                                  <span>₹{medicine.price}</span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span>Delivery:</span>
-                                  <span>₹{med.deliveryCharge}</span>
+                                  <span>₹{medicine.deliveryCharge}</span>
                                 </div>
                               </div>
                             </CardContent>
@@ -455,7 +517,7 @@ export default function MedicineSearch() {
                               <Button
                                 className="w-full"
                                 variant="outline"
-                                onClick={() => window.open(med.link, '_blank')}
+                                onClick={() => window.open(medicine.link, '_blank')}
                               >
                                 Buy Now
                               </Button>
