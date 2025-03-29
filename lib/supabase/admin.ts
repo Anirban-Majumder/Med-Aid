@@ -7,7 +7,7 @@ import { SessionContext } from "@/lib/supabase/usercontext";
 // Hardcoded admin emails - These users will always have admin privileges
 // Even if they don't have an is_admin=true flag in the database
 export const ADMIN_EMAILS = [
-    "anindyakanti2020gmail.com",
+    "anindyakanti2020@gmail.com", // Fixed the email format - added @ symbol
     "admin@pharmaaai.com"
 ];
 
@@ -25,6 +25,7 @@ export const checkAdminStatus = async (
 ): Promise<boolean> => {
     // If the email is in our hardcoded list, they're an admin regardless of DB state
     if (isHardcodedAdmin(userEmail)) {
+        console.log('User is hardcoded admin:', userEmail);
         return true;
     }
 
@@ -36,10 +37,16 @@ export const checkAdminStatus = async (
             .eq('user_id', userId)
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Database error checking admin status:', error.message);
+            return false;
+        }
+
+        console.log('Admin check from database:', data?.is_admin);
         return data?.is_admin === true;
     } catch (error) {
-        console.error('Error checking admin status:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Error checking admin status:', errorMessage);
         return false;
     }
 };

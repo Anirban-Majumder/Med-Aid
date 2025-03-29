@@ -17,6 +17,7 @@ import { SessionContext } from "@/lib/supabase/usercontext";
 import { CopilotManager } from "@/components/copilot";
 import { subscribeUser, unsubscribeUser } from '@/app/actions'
 import { createClient } from "@/lib/supabase/client";
+import { checkAdminStatus } from "@/lib/supabase/admin"; // Import the admin checking function
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -61,19 +62,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }, [sessionData]);
 
   const checkIfAdmin = async () => {
-    if (sessionData?.session?.user?.id) {
+    if (sessionData?.session?.user?.id && sessionData?.session?.user?.email) {
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('user_id', sessionData.session.user.id)
-          .single();
+        // Use the checkAdminStatus function from admin.ts
+        const isAdminUser = await checkAdminStatus(
+          supabase,
+          sessionData.session.user.id,
+          sessionData.session.user.email
+        );
 
-        if (data && data.is_admin) {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
-        }
+        setIsAdmin(isAdminUser);
       } catch (error) {
         console.error('Error checking admin status:', error);
         setIsAdmin(false);

@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
+import { checkAdminStatus } from "@/lib/supabase/admin"; // Import the admin checking function
 
 type DoctorApplication = {
     id: string;
@@ -45,23 +46,18 @@ export default function AdminVerifyPage() {
             return;
         }
 
-        const checkAdminStatus = async () => {
-            if (sessionData?.session?.user?.id) {
+        const checkUserAdminStatus = async () => {
+            if (sessionData?.session?.user?.id && sessionData?.session?.user?.email) {
                 try {
-                    const { data: profileData, error } = await supabase
-                        .from('profiles')
-                        .select('is_admin')
-                        .eq('user_id', sessionData.session.user.id)
-                        .single();
-
-                    if (error) {
-                        console.error('Error checking admin status:', error);
-                        router.push('/SignIn');
-                        return;
-                    }
+                    // Use the checkAdminStatus function from admin.ts
+                    const isAdminUser = await checkAdminStatus(
+                        supabase,
+                        sessionData.session.user.id,
+                        sessionData.session.user.email
+                    );
 
                     // If not admin, redirect to dashboard
-                    if (!profileData?.is_admin) {
+                    if (!isAdminUser) {
                         setIsAdmin(false);
                         router.push('/Protected/Dashboard');
                         return;
@@ -80,7 +76,7 @@ export default function AdminVerifyPage() {
         };
 
         if (sessionData?.session) {
-            checkAdminStatus();
+            checkUserAdminStatus();
         }
     }, [sessionData, sessionLoading, router]);
 
