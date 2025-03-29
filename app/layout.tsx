@@ -22,7 +22,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pharma AI",
+  title: "Med-Aid",
   description: "World's first AI-powered Pharmacy",
   appleWebApp: {
     title: "Med-Aid",

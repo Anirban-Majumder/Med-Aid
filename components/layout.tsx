@@ -216,7 +216,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <img src="/icon.svg" alt="icon" className="w-8 h-8" />
             </div>
             <h1 className="text-xl font-bold bg-gradient-to-r from-cyan-600 to-blue-700 bg-clip-text text-transparent">
-              PharmaAI
+              Med-Aid
             </h1>
           </div>
         </div>
