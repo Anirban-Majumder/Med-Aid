@@ -6,6 +6,28 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
+// Helper function to send Telegram messages
+async function sendTelegramMessage(chatId: number, text: string) {
+    try {
+        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chat_id: chatId, text }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error(`Telegram API error (${response.status}):`, errorData);
+            return { success: false, error: errorData };
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to send Telegram message:", error instanceof Error ? error.message : error);
+        return { success: false, error };
+    }
+}
+
 export async function POST(request: Request) {
     try {
         // Parse request body with specific error handling
@@ -53,30 +75,39 @@ export async function POST(request: Request) {
         console.log(`Received message: "${text}" from ${firstName} (chat ID: ${chatId})`);
 
         // Extract the user ID from the /start command
-        const match = text.match(/^\/start (.+)$/);
-        const userId = match ? match[1] : null;
+        const userId = text.split(" ")[1];
 
         if (!userId) {
-            console.warn(`No user ID provided in command: "${text}" from chat ID ${chatId}`);
+            console.warn(`No user ID provided in command: "${text}" from chat ID ${chatId}`, {
+                chatId,
+                messageText: text,
+                timestamp: new Date().toISOString()
+            });
 
             // Send helpful message to user
-            try {
-                await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        chat_id: chatId,
-                        text: `⚠️ Please use the link provided in the Med-Aid application to connect your Telegram account.`,
-                    }),
-                });
-            } catch (telegramError) {
-                console.error("Failed to send Telegram error message:", telegramError);
+            const msgResult = await sendTelegramMessage(
+                chatId,
+                `⚠️ Please use the link provided in the Med-Aid application to connect your Telegram account.`
+            );
+
+            if (!msgResult.success) {
+                console.error("Failed to send missing userID instruction:", msgResult.error);
+            } else {
+                console.log(`Successfully sent instructions to chat ID ${chatId}`);
             }
 
-            return NextResponse.json({ error: "Missing user ID in start command" }, { status: 400 });
+            return NextResponse.json({
+                error: "Missing user ID in start command",
+                details: "No user ID parameter was provided with the /start command"
+            }, { status: 400 });
         }
 
-        console.log(`Attempting to link Telegram chat ID ${chatId} to user ${userId}`);
+        console.log(`Attempting to link Telegram chat ID ${chatId} to user ${userId}`, {
+            chatId,
+            userId,
+            messageText: text,
+            timestamp: new Date().toISOString()
+        });
 
         // Store or update the Telegram chat ID in Supabase
         const { error: supabaseError, data: updateData } = await supabase
@@ -89,17 +120,13 @@ export async function POST(request: Request) {
             console.error(`Supabase error for user ${userId}:`, supabaseError);
 
             // Try to notify user about the error
-            try {
-                await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        chat_id: chatId,
-                        text: `❌ Sorry ${firstName}, we couldn't connect your Telegram account. Please try again or contact support.`,
-                    }),
-                });
-            } catch (telegramError) {
-                console.error("Failed to send Telegram error message:", telegramError);
+            const msgResult = await sendTelegramMessage(
+                chatId,
+                `❌ Sorry ${firstName}, we couldn't connect your Telegram account. Please try again or contact support.`
+            );
+
+            if (!msgResult.success) {
+                console.error("Failed to send Telegram error message:", msgResult.error);
             }
 
             throw new Error(`Supabase Error: ${supabaseError.message}, Code: ${supabaseError.code}, Details: ${JSON.stringify(supabaseError.details)}`);
@@ -109,41 +136,29 @@ export async function POST(request: Request) {
             console.warn(`No profile found for user ID: ${userId}`);
 
             // Notify user
-            try {
-                await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        chat_id: chatId,
-                        text: `❌ Sorry ${firstName}, we couldn't find your account. Please ensure you're using the correct link from Med-Aid.`,
-                    }),
-                });
-            } catch (telegramError) {
-                console.error("Failed to send Telegram not found message:", telegramError);
+            const msgResult = await sendTelegramMessage(
+                chatId,
+                `❌ Sorry ${firstName}, we couldn't find your account. Please ensure you're using the correct link from Med-Aid.`
+            );
+
+            if (!msgResult.success) {
+                console.error("Failed to send Telegram not found message:", msgResult.error);
             }
 
             return NextResponse.json({ error: "User profile not found" }, { status: 404 });
         }
 
         // Send confirmation message with error handling
-        try {
-            const telegramResponse = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    chat_id: chatId,
-                    text: `✅ Hi ${firstName}, your Telegram notifications are now enabled!`,
-                }),
-            });
+        const msgResult = await sendTelegramMessage(
+            chatId,
+            `✅ Hi ${firstName}, your Telegram notifications are now enabled!`
+        );
 
-            if (!telegramResponse.ok) {
-                const telegramErrorData = await telegramResponse.json();
-                console.error("Telegram API error:", telegramErrorData);
-                // Continue execution as the database was updated successfully
-            }
-        } catch (telegramError) {
-            console.error("Failed to send Telegram confirmation:", telegramError);
+        if (!msgResult.success) {
+            console.error("Failed to send Telegram confirmation:", msgResult.error);
             // Continue execution as the database was updated successfully
+        } else {
+            console.log(`Successfully sent confirmation to chat ID ${chatId}`);
         }
 
         console.log(`Successfully linked Telegram chat ID ${chatId} to user ${userId}`);
