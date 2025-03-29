@@ -67,22 +67,28 @@ export default function ImageUpload() {
       console.error("Error checking existing files:", existingFileError);
       return;
     }
-
+    let fullUrl: any;
     if (existingFileData && existingFileData.length > 0) {
       console.log("File already exists in the storage bucket.");
-      return `${process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL}/${existingFileData[0].id}`;
-    }
+      const { data } = supabase.storage
+        .from("prescription")
+        .getPublicUrl(`${user_id}/${file.name}`);
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("prescription")
-      .upload(`${user_id}/${file.name}`, file);
+      fullUrl = data.publicUrl;
+    } else {
 
-    if (uploadError) {
-      console.error("Error uploading file to storage:", uploadError);
-      return;
-    }
-    const fullUrl = `${process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL}/${uploadData?.fullPath}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("prescription")
+        .upload(`${user_id}/${file.name}`, file);
 
+      if (uploadError) {
+        console.error("Error uploading file to storage:", uploadError);
+        return;
+      }
+
+
+    fullUrl = `${process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL}/${uploadData?.fullPath}`;
+  }
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("prescription_url")
@@ -114,7 +120,6 @@ export default function ImageUpload() {
       }));
       console.log("File uploaded and profile updated successfully");
       setImage(null);
-      setSelectedFile(null);
       setIsOpen(false);
       setIsManualOpen(false);
       return fullUrl;
@@ -238,13 +243,10 @@ export default function ImageUpload() {
     if (!selectedFile) return;
 
     setIsSaving(true);
-
     const uploadedUrl = await uploadToPrescriptionBucket(selectedFile);
-    if (uploadedUrl) {
-      setOcrEnabled(true);  // This will trigger OCRModal with the file
-    }
-
     setIsSaving(false);
+    setOcrEnabled(true);
+      // This will trigger OCRModal with the file
   };
 
   const handleAddTimeSlot = () => {
