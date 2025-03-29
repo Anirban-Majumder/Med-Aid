@@ -13,6 +13,7 @@ export const SessionProvider = ({ children }: SessionProviderProps) => {
     profile: null,
     medicines: [],
   });
+  const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export const SessionProvider = ({ children }: SessionProviderProps) => {
   useEffect(() => {
     if (sessionData.session) {
       const userId = sessionData.session.user.id;
+      setIsLoading(true);
 
       const fetchData = async () => {
         try {
@@ -42,12 +44,14 @@ export const SessionProvider = ({ children }: SessionProviderProps) => {
             supabase.from('medicines').select('*').eq('user_id', userId)
           ]);
 
-          if (profileResponse.error) {
+          // For new users, profile will be null - this is expected and not an error
+          if (profileResponse.error && profileResponse.error.code !== 'PGRST116') {
+            // PGRST116 is the error code for "no rows returned" in PostgREST
             console.error('Error fetching profile:', profileResponse.error);
           } else {
             setSessionData(prev => ({
               ...prev,
-              profile: profileResponse.data,
+              profile: profileResponse.data || null, // Ensure null if no data
             }));
           }
 
@@ -56,20 +60,24 @@ export const SessionProvider = ({ children }: SessionProviderProps) => {
           } else {
             setSessionData(prev => ({
               ...prev,
-              medicines: medicinesResponse.data,
+              medicines: medicinesResponse.data || [],
             }));
           }
         } catch (error) {
           console.error('Error fetching data:', error);
+        } finally {
+          setIsLoading(false);
         }
       };
 
       fetchData();
+    } else {
+      setIsLoading(false);
     }
   }, [sessionData.session, supabase]);
 
   return (
-    <SessionContext.Provider value={{ sessionData, setSessionData }}>
+    <SessionContext.Provider value={{ sessionData, setSessionData, isLoading }}>
       {children}
     </SessionContext.Provider>
   );
