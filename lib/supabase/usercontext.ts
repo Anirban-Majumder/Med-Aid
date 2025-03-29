@@ -11,9 +11,11 @@ export interface SessionData {
 export interface SessionContextType {
   sessionData: SessionData;
   setSessionData: React.Dispatch<React.SetStateAction<SessionData>>;
+  isLoading: boolean;
 }
 
 export const SessionContext = React.createContext<SessionContextType>({
   sessionData: { session: null, profile: null, medicines: [] },
-  setSessionData: () => {},
+  setSessionData: () => { },
+  isLoading: true,
 });
