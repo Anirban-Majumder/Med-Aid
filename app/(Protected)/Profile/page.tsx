@@ -29,6 +29,17 @@ export default function Profile() {
   const [isDeletingSymptom, setIsDeletingSymptom] = useState<string | null>(null);
   const [isDeletingMedicine, setIsDeletingMedicine] = useState<string | null>(null);
 
+  const getRelatedSymptoms = (medicineName: string) => {
+    if (!sessionData.profile?.symptoms || sessionData.profile.symptoms.length === 0) {
+      return [];
+    }
+
+    return sessionData.profile.symptoms.filter(symptom =>
+      medicineName.toLowerCase().includes(symptom.name.toLowerCase()) ||
+      symptom.name.toLowerCase().includes(medicineName.toLowerCase())
+    );
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -364,6 +375,29 @@ export default function Profile() {
                               <p className="mt-1 text-gray-600 dark:text-gray-300">
                                 <span className="font-medium">Duration:</span> {medicine.eat_upto}
                               </p>
+
+                              {/* Display related symptoms */}
+                              {(() => {
+                                const relatedSymptoms = getRelatedSymptoms(medicine.name);
+                                return relatedSymptoms.length > 0 && (
+                                  <div className="mt-2">
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                      Related Symptoms:
+                                    </p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {relatedSymptoms.map((symptom, idx) => (
+                                        <span
+                                          key={idx}
+                                          className="px-2 py-0.5 text-xs rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200"
+                                        >
+                                          {symptom.name}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+
                               <div className="flex gap-2 mt-2">
                                 <Button
                                   disabled={isBuyLoading}
