@@ -9,13 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { SessionContext } from "@/lib/supabase/usercontext";
-import { ImageIcon } from "lucide-react";
+import { ImageIcon, Loader2 } from "lucide-react";
 
 export default function Profile() {
   const { sessionData, setSessionData } = useContext(SessionContext);
   const isLoading = false;
   const symptoms = sessionData.profile?.symptoms;
   const [isEditing, setIsEditing] = useState(false);
+  const [loadingMedicineId, setLoadingMedicineId] = useState<string | null>(null);
+  const [loadingDetailsId, setLoadingDetailsId] = useState<string | null>(null);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -31,6 +33,27 @@ export default function Profile() {
       opacity: 1,
       y: 0,
       transition: { type: "spring", stiffness: 300, damping: 24 }
+    }
+  };
+
+  // Function to handle buying medicine
+  const handleBuyMedicine = async (medicine: any) => {
+    try {
+      setLoadingMedicineId(medicine.m_id || medicine.name);
+      const response = await fetch(`/api/medPriceSearch?name=${encodeURIComponent(medicine.name)}`);
+      if (!response.ok) throw new Error("Failed to search medicine");
+
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const firstMedicine = data[0];
+        window.location.href = `/Medicine?name=${encodeURIComponent(firstMedicine.medicineName)}&pack=${encodeURIComponent(firstMedicine.packSize)}`;
+      } else {
+        console.error("No medicine found in search results");
+      }
+    } catch (error) {
+      console.error("Error searching medicine:", error);
+    } finally {
+      setLoadingMedicineId(null);
     }
   };
 
@@ -126,45 +149,58 @@ export default function Profile() {
                   ) : (
                     <div className="overflow-x-auto">
                       <div className="flex gap-4 pb-2 min-w-full">
-                        {sessionData.medicines.map((medicine) => (
-                          <div
-                            key={medicine.m_id || medicine.name}
-                            className="flex-shrink-0 w-[280px] p-4 bg-gray-50 dark:bg-gray-900 rounded-lg"
-                          >
-                            <h3 className="text-base sm:text-lg font-semibold truncate">
-                              {medicine.name}
-                            </h3>
-                            <p className="mt-2 text-gray-600 dark:text-gray-300">
-                              <span className="font-medium">Dosage:</span> {medicine.description}
-                            </p>
-                            <p className="mt-1 text-gray-600 dark:text-gray-300">
-                              <span className="font-medium">Duration:</span> {medicine.eat_upto}
-                            </p>
-                            <div className="flex gap-2 mt-2">
-                              <Button onClick={async () => {
-                                try {
-                                  const response = await fetch(`/api/medPriceSearch?name=${encodeURIComponent(medicine.name)}`);
-                                  if (!response.ok) throw new Error("Failed to search medicine");
+                        {sessionData.medicines.map((medicine) => {
+                          const medicineId = medicine.m_id || medicine.name;
+                          const isBuyLoading = loadingMedicineId === medicineId;
+                          const isViewLoading = loadingDetailsId === medicineId;
 
-                                  const data = await response.json();
-                                  if (data && data.length > 0) {
-                                    const firstMedicine = data[0];
-                                    window.location.href = `/Medicine?name=${encodeURIComponent(firstMedicine.medicineName)}&pack=${encodeURIComponent(firstMedicine.packSize)}`;
-                                  } else {
-                                    console.error("No medicine found in search results");
-                                  }
-                                } catch (error) {
-                                  console.error("Error searching medicine:", error);
-                                }
-                              }}>
-                                Buy now
-                              </Button>
-                              <Button>
-                                <Link href={`/MedDetails?id=${medicine.m_id}`}>View Details</Link>
-                              </Button>
+                          return (
+                            <div
+                              key={medicineId}
+                              className="flex-shrink-0 w-[280px] p-4 bg-gray-50 dark:bg-gray-900 rounded-lg"
+                            >
+                              <h3 className="text-base sm:text-lg font-semibold truncate">
+                                {medicine.name}
+                              </h3>
+                              <p className="mt-2 text-gray-600 dark:text-gray-300">
+                                <span className="font-medium">Dosage:</span> {medicine.description}
+                              </p>
+                              <p className="mt-1 text-gray-600 dark:text-gray-300">
+                                <span className="font-medium">Duration:</span> {medicine.eat_upto}
+                              </p>
+                              <div className="flex gap-2 mt-2">
+                                <Button
+                                  disabled={isBuyLoading}
+                                  onClick={() => handleBuyMedicine(medicine)}
+                                >
+                                  {isBuyLoading ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Loading...
+                                    </>
+                                  ) : 'Buy now'}
+                                </Button>
+                                {isViewLoading ? (
+                                  <Button disabled>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Loading...
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    onClick={() => {
+                                      setLoadingDetailsId(medicineId);
+                                      // Will be automatically redirected by Link component
+                                      // But still set loading state for visual feedback
+                                      setTimeout(() => setLoadingDetailsId(null), 500);
+                                    }}
+                                  >
+                                    <Link href={`/MedDetails?id=${medicine.m_id}`}>View Details</Link>
+                                  </Button>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
