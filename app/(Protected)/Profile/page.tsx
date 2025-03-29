@@ -408,7 +408,7 @@ export default function Profile() {
                                     {medicine.side_effect.map((effect, idx) => (
                                       <span
                                         key={idx}
-                                        className="px-2 py-0.5 text-xs rounded-full bg-red-100 dark:bg-black text-grey-400 dark:text-black"
+                                        className="px-2 py-0.5 text-xs rounded-full bg-red-100 dark:bg-red-900 text-grey-400 dark:text-grey-100"
                                       >
                                         {effect}
                                       </span>
