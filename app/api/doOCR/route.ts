@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GoogleAIFileManager } from "@google/generative-ai/server";
+import fs from "fs";
 import os from "os";
 import path from "path";
-import fs from 'fs';
-import http from 'http';
-import https from 'https';
+import exp from 'constants';
 
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {
@@ -96,118 +95,36 @@ const generationConfig = {
         ]
     },
 };
-async function uploadToGemini(url: string, mimeType: any) {
-    return new Promise((resolve, reject) => {
-      try {
-        // Extract filename from URL
-        const fileName = path.basename(url);
-        const tempDir = path.join(os.tmpdir(), 'med-aid-temp');
-        const tempFilePath = path.join(tempDir, fileName);
-        
-        // Create temp directory if it doesn't exist
-        if (!fs.existsSync(tempDir)) {
-          fs.mkdirSync(tempDir, { recursive: true });
-        }
-        
-        // Determine whether to use http or https
-        const httpClient = url.startsWith('https') ? https : http;
-        
-        console.log(`Downloading file from ${url}...`);
-        
-        // Download file from URL
-        const fileStream = fs.createWriteStream(tempFilePath);
-        
-        httpClient.get(url, (response) => {
-          // Handle redirects
-          if (response.statusCode === 301 || response.statusCode === 302) {
-            fs.unlinkSync(tempFilePath);
-            if (response.headers.location) {
-              uploadToGemini(response.headers.location, mimeType)
-                .then(resolve)
-                .catch(reject);
-            } else {
-              reject(new Error("Redirect location header is missing"));
-            }
-            return;
-          }
-          
-          response.pipe(fileStream);
-          
-          fileStream.on('finish', async () => {
-            fileStream.close();
-            console.log(`File saved temporarily to ${tempFilePath}`);
-            
-            try {
-              // Upload to Google
-              const uploadResult = await fileManager.uploadFile(tempFilePath, {
-                mimeType,
-                displayName: fileName,
-              });
-              
-              const file = uploadResult.file;
-              console.log(`Uploaded file ${file.displayName} as: ${file.name}`);
-              console.log("Full uploaded file object:", file);
-              
-              // Clean up temp file
-              fs.unlinkSync(tempFilePath);
-              console.log(`Temporary file removed`);
-              
-              resolve(file);
-            } catch (error) {
-              reject(error);
-            }
-          });
-        }).on('error', (error) => {
-          fs.unlinkSync(tempFilePath);
-          reject(error);
-        });
-        
-      } catch (error) {
-        console.error("Error uploading file from URL:", error);
-        reject(error);
-      }
-    });
-}
   
 export async function POST(req: NextRequest) {
     try {
-      // Extract image from request
-      const { image } = await req.json();
-      console.log("Received image:", image);
-      if (!image) {
-        return NextResponse.json(
-          { error: "No image provided" },
-          { status: 400 }
-        );
-      }
-     
-      // Upload file to Gemini
-      const file = await uploadToGemini(image, "image/jpeg");
+        const formData = await req.formData();
+        const file = formData.get("file") as File;
+    
+        if (!file) {
+          return NextResponse.json(
+            { error: "Missing required fields" },
+            { status: 400 }
+          );
+        }
+        console.log("Received file:", file.name, file.type);
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+    
       
-      // Start chat session and log its configuration
-      console.log("Starting chat session with generationConfig:", generationConfig);
       const chatSession = model.startChat({
           // @ts-ignore
           generationConfig,
           history: [],
       });
-  
-      // Log the fileUri being sent
-      console.log("Sending message with fileData:", {
-        // @ts-ignore
-        fileUri: file.name,
-        mimeType: "image/jpeg"
-      });
-      
-      // Fixed message format for Gemini API
       const result = await chatSession.sendMessage([
-          {
-              fileData: {
-                // @ts-ignore
-                  fileUri: file.name,
-                  mimeType: "image/jpeg"
-              }
-          }
+        {
+            inlineData: {
+              data: Buffer.from(bytes).toString('base64'),
+              mimeType: file.type,
+            }
+        },
+        { text: "Extract the symptoms and meds from this img" }
       ]);
   
       console.log("Result from chatSession.sendMessage:", result);

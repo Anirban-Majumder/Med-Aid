@@ -15,7 +15,7 @@ interface OCRItem {
 }
 
 interface MedicineModalProps {
-  imgUrl?: string;
+  imgFile?: File; // Change from imgUrl to imgFile
 }
 
 const calculateEndDate = (duration: string): string => {
@@ -27,7 +27,7 @@ const calculateEndDate = (duration: string): string => {
   return endDate.toISOString().split('T')[0];
 };
 
-export default function OCRModal({ imgUrl }: MedicineModalProps) {
+export default function OCRModal({ imgFile }: MedicineModalProps) {
   const supabase = createClient();
   const { sessionData, setSessionData } = useContext(SessionContext);
 
@@ -41,51 +41,49 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
 
   // When an image URL is provided, process it with the OCR endpoint
   useEffect(() => {
+    console.log("Image file changed:", imgFile);
     async function fetchOCR() {
       try {
+        if (!imgFile) {
+          setLoading(false);
+          return;
+        }
+        
+        // Create FormData and append the file
+        const formData = new FormData();
+        formData.append("file", imgFile);
+        
         const response = await fetch("/api/doOCR", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: imgUrl }),
+          body: formData, // Send the file as FormData
         });
+
         if (response.ok) {
           const data = await response.json();
+          
+          // Process the symptoms and medicines from the response
+          const symptomsSet = new Set<string>();
+          const medicinesList: Medicine[] = [];
 
-          // Handle JSON parsing with error handling
-          let parsed: OCRItem[] = [];
-          try {
-            // Try to parse the OCR response
-            parsed = JSON.parse(data.ocr);
-          } catch (parseError) {
-            console.error("Error parsing OCR JSON:", parseError);
-            // Set default empty array
-            parsed = [];
+          if (data.symptoms) {
+            data.symptoms.forEach((symptom: any) => {
+              if (symptom.name) {
+                symptomsSet.add(symptom.name.trim());
+              }
+            });
           }
 
-          const medicinesList: Medicine[] = [];
-          const symptomsSet = new Set<string>();
-
-          if (Array.isArray(parsed)) {
-            parsed.forEach((item) => {
-              if (item && item.symptom) {
-                item.symptom.split(",").forEach((s) => {
-                  const trimmed = s.trim();
-                  if (trimmed) symptomsSet.add(trimmed);
-                });
-              }
-              if (item && Array.isArray(item.meds)) {
-                item.meds.forEach((med) => {
-                  medicinesList.push({
-                    name: med.name || "",
-                    description: med.description || "",
-                    eat_upto: med.eat_upto || "",
-                    m_id: med.m_id || "12131",
-                    times_to_eat: med.times_to_eat || ["2000"],
-                    side_effect: med.side_effect || [],
-                    uses: med.uses || "",
-                  });
-                });
-              }
+          if (data.meds && Array.isArray(data.meds)) {
+            data.meds.forEach((med: any) => {
+              medicinesList.push({
+                name: med.name || "",
+                description: med.description || "",
+                eat_upto: med.eat_for || new Date().toISOString().split('T')[0],
+                m_id: Date.now().toString(),
+                times_to_eat: Array.isArray(med.times_to_eat) ? med.times_to_eat : ["0800"],
+                side_effect: Array.isArray(med.side_effect) ? med.side_effect : [],
+                uses: med.uses || "",
+              });
             });
           }
 
@@ -116,10 +114,11 @@ export default function OCRModal({ imgUrl }: MedicineModalProps) {
         setLoading(false);
       }
     }
-    if (imgUrl) {
+    
+    if (imgFile) {
       fetchOCR();
     }
-  }, [imgUrl]);
+  }, [imgFile]);
 
   const handleMedicineChange = (index: number, field: string, value: string) => {
     const updatedMedicines = [...medicines];

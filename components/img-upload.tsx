@@ -17,7 +17,7 @@ export default function ImageUpload() {
   const [isSaving, setIsSaving] = useState(false);
   const [image, setImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [ocrImgUrl, setOcrImgUrl] = useState<string | null>(null);
+  const [ocrEnabled, setOcrEnabled] = useState<boolean>(false);
   const [medicineName, setMedicineName] = useState("");
   const [input, setInput] = useState<Medicine>({
     name: "",
@@ -241,7 +241,7 @@ export default function ImageUpload() {
 
     const uploadedUrl = await uploadToPrescriptionBucket(selectedFile);
     if (uploadedUrl) {
-      setOcrImgUrl(uploadedUrl);
+      setOcrEnabled(true);  // This will trigger OCRModal with the file
     }
 
     setIsSaving(false);
@@ -533,8 +533,8 @@ export default function ImageUpload() {
           </div>
         </div>
       )}
-
-      {ocrImgUrl && <OCRModal imgUrl={ocrImgUrl} />}
+      {/* Pass the selectedFile directly to OCRModal instead of url */}
+      {ocrEnabled && selectedFile && <OCRModal imgFile={selectedFile} />}
     </>
   );
 }
