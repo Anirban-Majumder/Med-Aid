@@ -8,7 +8,7 @@ import { SessionContext } from "@/lib/supabase/usercontext";
 // Even if they don't have an is_admin=true flag in the database
 export const ADMIN_EMAILS = [
     "anindyakanti2020@gmail.com", // Fixed the email format - added @ symbol
-    "admin@pharmaaai.com"
+    "anirbanmajumder2021@gmail.com"
 ];
 
 // Helper function to check if an email is in the hardcoded admin list

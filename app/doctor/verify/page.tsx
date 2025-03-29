@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/card';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Loader2, CheckCircle, XCircle, Eye, Download, Clock, AlertTriangle } from 'lucide-react';
-import { isHardcodedAdmin, checkAdminStatus } from '@/lib/supabase/admin';
+import { checkAdminStatus } from '@/lib/supabase/admin';
 
 type DoctorApplication = {
     id: string;
@@ -17,17 +17,19 @@ type DoctorApplication = {
     email: string;
     first_name: string;
     last_name: string;
-    specialty: string;
-    license_number: string;
+    specializations: string;  // Updated from specialty
+    registration_no: string;  // Updated from license_number
     years_of_experience: number;
     hospital_affiliation: string;
     phone: string;
     address: string;
+    description: string;     // Added
     bio: string;
     license_url: string;
     degree_url: string;
     is_verified: boolean;
     is_approved: boolean;
+    rejection_reason?: string; // Added
     created_at: string;
 };
 
@@ -41,6 +43,73 @@ export default function DoctorVerifyPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedApplication, setSelectedApplication] = useState<DoctorApplication | null>(null);
     const [viewingDocs, setViewingDocs] = useState<{ type: 'license' | 'degree'; url: string } | null>(null);
+    const [stateLoaded, setStateLoaded] = useState(false);
+
+    // Load state from sessionStorage on initial mount
+    useEffect(() => {
+        try {
+            const savedState = sessionStorage.getItem('verifyPageState');
+            if (savedState) {
+                const parsedState = JSON.parse(savedState);
+                if (parsedState.pendingApplications) setPendingApplications(parsedState.pendingApplications);
+                if (parsedState.selectedApplication) setSelectedApplication(parsedState.selectedApplication);
+                if (parsedState.viewingDocs) setViewingDocs(parsedState.viewingDocs);
+                if (parsedState.isAdmin) setIsAdmin(parsedState.isAdmin);
+                if (parsedState.doctorProfile) setDoctorProfile(parsedState.doctorProfile);
+                setStateLoaded(true);
+            }
+        } catch (error) {
+            console.error('Error restoring state from sessionStorage:', error);
+        }
+    }, []);
+
+    // Add visibility change handler to prevent refreshing when switching tabs
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                // Tab is now visible again, restore state from sessionStorage
+                try {
+                    const savedState = sessionStorage.getItem('verifyPageState');
+                    if (savedState) {
+                        const parsedState = JSON.parse(savedState);
+                        if (parsedState.pendingApplications) setPendingApplications(parsedState.pendingApplications);
+                        if (parsedState.selectedApplication) setSelectedApplication(parsedState.selectedApplication);
+                        if (parsedState.viewingDocs) setViewingDocs(parsedState.viewingDocs);
+                        if (parsedState.isAdmin) setIsAdmin(parsedState.isAdmin);
+                        if (parsedState.doctorProfile) setDoctorProfile(parsedState.doctorProfile);
+                    }
+                } catch (error) {
+                    console.error('Error restoring state on visibility change:', error);
+                }
+            }
+        };
+
+        // Add event listener for visibility change
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Clean up
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
+
+    // Save state to sessionStorage whenever important state changes
+    useEffect(() => {
+        if (!isLoading) {
+            try {
+                const stateToSave = {
+                    pendingApplications,
+                    selectedApplication,
+                    viewingDocs,
+                    isAdmin,
+                    doctorProfile
+                };
+                sessionStorage.setItem('verifyPageState', JSON.stringify(stateToSave));
+            } catch (error) {
+                console.error('Error saving state to sessionStorage:', error);
+            }
+        }
+    }, [pendingApplications, selectedApplication, viewingDocs, isAdmin, doctorProfile, isLoading]);
 
     useEffect(() => {
         // Redirect to sign in if not authenticated
@@ -61,11 +130,19 @@ export default function DoctorVerifyPage() {
                     setIsAdmin(adminStatus);
 
                     if (adminStatus) {
-                        // If admin, load all pending applications
-                        await fetchPendingApplications();
+                        // If admin, load all pending applications (if not already loaded from sessionStorage)
+                        if (pendingApplications.length === 0 && !stateLoaded) {
+                            await fetchPendingApplications();
+                        } else {
+                            setIsLoading(false);
+                        }
                     } else {
-                        // If not admin, check if user is a doctor and load their profile
-                        await fetchDoctorProfile(userId);
+                        // If not admin, check if user is a doctor and load their profile (if not already loaded)
+                        if (!doctorProfile && !stateLoaded) {
+                            await fetchDoctorProfile(userId);
+                        } else {
+                            setIsLoading(false);
+                        }
                     }
                 } catch (error) {
                     console.error('Error checking user status:', error);
@@ -75,15 +152,18 @@ export default function DoctorVerifyPage() {
             }
         };
 
-        if (sessionData?.session) {
+        if (sessionData?.session && !stateLoaded) {
             checkUserStatusAndLoadData();
+        } else if (stateLoaded) {
+            // If state was loaded from sessionStorage, we can skip the loading phase
+            setIsLoading(false);
         }
-    }, [sessionData, sessionLoading, router]);
+    }, [sessionData, sessionLoading, router, stateLoaded]);
 
     const fetchDoctorProfile = async (userId: string) => {
         try {
             const { data, error } = await supabase
-                .from('doctor_profiles')
+                .from('doctor_profiles') // Changed from doc_profiles to doctor_profiles
                 .select('*')
                 .eq('user_id', userId)
                 .single();
@@ -106,7 +186,7 @@ export default function DoctorVerifyPage() {
     const fetchPendingApplications = async () => {
         try {
             const { data, error } = await supabase
-                .from('doctor_profiles')
+                .from('doctor_profiles') // Changed from doc_profiles to doctor_profiles
                 .select('*')
                 .eq('is_verified', false)
                 .order('created_at', { ascending: false });
@@ -246,15 +326,34 @@ export default function DoctorVerifyPage() {
                     <Card className="p-8 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm shadow-xl rounded-xl border border-zinc-200/50 dark:border-zinc-700/50">
                         {doctorProfile ? (
                             <>
-                                {doctorProfile.is_verified ? (
+                                {doctorProfile.is_verified && doctorProfile.is_approved ? (
                                     <div className="text-center">
                                         <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
                                         <h2 className="text-2xl font-bold mb-2">Verified!</h2>
                                         <p className="text-zinc-600 dark:text-zinc-400 mb-6">
                                             Your doctor account has been verified and approved. You can now access all features.
                                         </p>
-                                        <Button asChild>
-                                            <Link href="/Dashboard">Go to Dashboard</Link>
+                                        <Button asChild className="bg-blue-600 hover:bg-blue-700">
+                                            <Link href="/doctor/dashboard">Go to Doctor Dashboard</Link>
+                                        </Button>
+                                    </div>
+                                ) : !doctorProfile.is_verified && doctorProfile.is_approved === false && doctorProfile.rejection_reason ? (
+                                    <div className="text-center">
+                                        <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+                                        <h2 className="text-2xl font-bold mb-2">Application Rejected</h2>
+                                        <p className="text-red-600 dark:text-red-400 mb-4">
+                                            We regret to inform you that your application has been rejected.
+                                        </p>
+                                        <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg mb-6">
+                                            <p className="text-sm text-red-800 dark:text-red-300">
+                                                Reason: {doctorProfile.rejection_reason}
+                                            </p>
+                                        </div>
+                                        <p className="text-zinc-600 dark:text-zinc-400 mb-6">
+                                            Please contact support for more information or to appeal this decision.
+                                        </p>
+                                        <Button asChild variant="outline">
+                                            <Link href="/contact">Contact Support</Link>
                                         </Button>
                                     </div>
                                 ) : (
@@ -280,14 +379,25 @@ export default function DoctorVerifyPage() {
                             </>
                         ) : (
                             <div className="text-center">
-                                <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-                                <h2 className="text-2xl font-bold mb-2">No Application Found</h2>
+                                <h2 className="text-2xl font-bold mb-4">Application Not Found</h2>
                                 <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                                    We couldn't find a doctor verification application for your account.
+                                    You haven't submitted a doctor verification application yet.
+                                    Please complete the application form to join our healthcare platform.
                                 </p>
-                                <Button asChild>
-                                    <Link href="/doctor/setup">Complete Your Application</Link>
-                                </Button>
+                                <div className="flex flex-col gap-4">
+                                    <Link
+                                        href="/doctor/setup"
+                                        className="inline-flex items-center justify-center w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                    >
+                                        Start New Application
+                                    </Link>
+                                    <Link
+                                        href="/"
+                                        className="inline-flex items-center justify-center w-full px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                                    >
+                                        Return to Home
+                                    </Link>
+                                </div>
                             </div>
                         )}
                     </Card>
@@ -373,12 +483,12 @@ export default function DoctorVerifyPage() {
                                     <h3 className="text-lg font-semibold mb-4">Professional Information</h3>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">Specialty</p>
-                                            <p className="font-medium">{selectedApplication.specialty}</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">Specializations</p>
+                                            <p className="font-medium">{selectedApplication.specializations}</p>
                                         </div>
                                         <div>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">License Number</p>
-                                            <p className="font-medium">{selectedApplication.license_number}</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">Registration No</p>
+                                            <p className="font-medium">{selectedApplication.registration_no}</p>
                                         </div>
                                         <div>
                                             <p className="text-sm text-gray-500 dark:text-gray-400">Experience</p>
@@ -400,6 +510,15 @@ export default function DoctorVerifyPage() {
                                     </div>
                                 )}
 
+                                {selectedApplication.description && (
+                                    <div>
+                                        <h3 className="text-lg font-semibold mb-2">Description</h3>
+                                        <p className="text-gray-700 dark:text-gray-300 text-sm bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                                            {selectedApplication.description}
+                                        </p>
+                                    </div>
+                                )}
+
                                 <div>
                                     <h3 className="text-lg font-semibold mb-4">Application Info</h3>
                                     <div className="grid grid-cols-2 gap-4">
@@ -410,8 +529,11 @@ export default function DoctorVerifyPage() {
                                         <div>
                                             <p className="text-sm text-gray-500 dark:text-gray-400">Status</p>
                                             <p className="font-medium">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
-                                                    Pending Review
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${selectedApplication.is_verified
+                                                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                                                    : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                                                    }`}>
+                                                    {selectedApplication.is_verified ? "Verified" : "Pending Review"}
                                                 </span>
                                             </p>
                                         </div>
@@ -452,13 +574,21 @@ export default function DoctorVerifyPage() {
                                     <div className="space-y-4">
                                         <Button
                                             onClick={() => handleApproveDoctor(selectedApplication.id)}
-                                            disabled={isLoading}
-                                            className="w-full bg-green-600 hover:bg-green-700"
+                                            disabled={isLoading || selectedApplication.is_verified}
+                                            className={`w-full ${selectedApplication.is_verified
+                                                ? "bg-gray-300 hover:bg-gray-300 cursor-not-allowed"
+                                                : "bg-green-600 hover:bg-green-700"
+                                                }`}
                                         >
                                             {isLoading ? (
                                                 <div className="flex items-center">
                                                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                                                     <span>Processing...</span>
+                                                </div>
+                                            ) : selectedApplication.is_verified ? (
+                                                <div className="flex items-center">
+                                                    <CheckCircle className="w-5 h-5 mr-2" />
+                                                    <span>Already Approved</span>
                                                 </div>
                                             ) : (
                                                 <div className="flex items-center">
@@ -470,14 +600,22 @@ export default function DoctorVerifyPage() {
 
                                         <Button
                                             onClick={() => handleRejectDoctor(selectedApplication.id)}
-                                            disabled={isLoading}
+                                            disabled={isLoading || selectedApplication.is_verified}
                                             variant="outline"
-                                            className="w-full border-red-300 text-red-600 hover:border-red-400 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                                            className={`w-full ${selectedApplication.is_verified
+                                                ? "border-gray-300 text-gray-400 hover:border-gray-300 cursor-not-allowed"
+                                                : "border-red-300 text-red-600 hover:border-red-400 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                                                }`}
                                         >
                                             {isLoading ? (
                                                 <div className="flex items-center">
                                                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                                                     <span>Processing...</span>
+                                                </div>
+                                            ) : selectedApplication.is_verified ? (
+                                                <div className="flex items-center">
+                                                    <XCircle className="w-5 h-5 mr-2" />
+                                                    <span>Cannot Reject Approved Application</span>
                                                 </div>
                                             ) : (
                                                 <div className="flex items-center">
@@ -524,18 +662,21 @@ export default function DoctorVerifyPage() {
                                                         Dr. {application.first_name} {application.last_name}
                                                     </h3>
                                                     <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">
-                                                        {application.specialty}
+                                                        {application.specializations}
                                                     </p>
                                                 </div>
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
-                                                    Pending
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${application.is_verified
+                                                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                                                    : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                                                    }`}>
+                                                    {application.is_verified ? "Verified" : "Pending"}
                                                 </span>
                                             </div>
 
                                             <div className="mt-4 space-y-2 text-sm">
                                                 <div className="flex items-center">
                                                     <span className="text-zinc-500 dark:text-zinc-400 w-24">License:</span>
-                                                    <span className="font-medium">{application.license_number}</span>
+                                                    <span className="font-medium">{application.registration_no}</span>
                                                 </div>
                                                 <div className="flex items-center">
                                                     <span className="text-zinc-500 dark:text-zinc-400 w-24">Experience:</span>
@@ -547,10 +688,11 @@ export default function DoctorVerifyPage() {
                                                 </div>
                                             </div>
 
-                                            <div className="mt-6">
+                                            <div className="mt-4">
                                                 <Button
                                                     onClick={() => setSelectedApplication(application)}
                                                     className="w-full"
+                                                    variant="outline"
                                                 >
                                                     Review Application
                                                 </Button>

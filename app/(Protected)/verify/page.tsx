@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
 import { checkAdminStatus } from "@/lib/supabase/admin"; // Import the admin checking function
+import { Layout } from "@/components/layout";
 
 type DoctorApplication = {
     id: string;
@@ -273,230 +274,232 @@ export default function AdminVerifyPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-zinc-100 via-blue-50 to-zinc-200 dark:from-zinc-900 dark:via-blue-900/10 dark:to-zinc-900 p-6">
-            <div className="max-w-7xl mx-auto">
-                {viewingDocs ? (
-                    <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl p-6">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold">
-                                {viewingDocs.type === 'license' ? 'License Document' : 'Medical Degree'}
-                            </h2>
-                            <Button variant="outline" onClick={() => setViewingDocs(null)}>
-                                <Icon icon="ph:x-bold" className="w-5 h-5 mr-2" />
-                                Close
-                            </Button>
-                        </div>
-                        <div className="bg-zinc-100 dark:bg-zinc-700 rounded-xl p-2">
-                            <div className="aspect-auto w-full overflow-hidden flex justify-center">
-                                <img
-                                    src={viewingDocs.url}
-                                    alt={viewingDocs.type === 'license' ? 'Medical License' : 'Medical Degree'}
-                                    className="max-w-full h-auto object-contain"
-                                />
+        <Layout>
+            <div className="min-h-screen bg-gradient-to-br from-zinc-100 via-blue-50 to-zinc-200 dark:from-zinc-900 dark:via-blue-900/10 dark:to-zinc-900 p-6">
+                <div className="max-w-7xl mx-auto">
+                    {viewingDocs ? (
+                        <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl p-6">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-2xl font-bold">
+                                    {viewingDocs.type === 'license' ? 'License Document' : 'Medical Degree'}
+                                </h2>
+                                <Button variant="outline" onClick={() => setViewingDocs(null)}>
+                                    <Icon icon="ph:x-bold" className="w-5 h-5 mr-2" />
+                                    Close
+                                </Button>
+                            </div>
+                            <div className="bg-zinc-100 dark:bg-zinc-700 rounded-xl p-2">
+                                <div className="aspect-auto w-full overflow-hidden flex justify-center">
+                                    <img
+                                        src={viewingDocs.url}
+                                        alt={viewingDocs.type === 'license' ? 'Medical License' : 'Medical Degree'}
+                                        className="max-w-full h-auto object-contain"
+                                    />
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ) : selectedDoctor ? (
-                    <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl p-6">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold">Doctor Application Details</h2>
-                            <Button variant="outline" onClick={() => setSelectedDoctor(null)}>
-                                <Icon icon="ph:arrow-left-bold" className="w-5 h-5 mr-2" />
-                                Back to Applications
-                            </Button>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-6">
-                                <div>
-                                    <h3 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-500 to-cyan-600 bg-clip-text text-transparent">Personal Information</h3>
-                                    <div className="bg-zinc-50 dark:bg-zinc-700/40 rounded-xl p-4 space-y-3">
-                                        <div className="flex justify-between">
-                                            <span className="text-zinc-500 dark:text-zinc-400">Full Name</span>
-                                            <span className="font-medium">{selectedDoctor.first_name} {selectedDoctor.last_name}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-zinc-500 dark:text-zinc-400">Specialty</span>
-                                            <span className="font-medium">{selectedDoctor.specializations}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-zinc-500 dark:text-zinc-400">Experience</span>
-                                            <span className="font-medium">{selectedDoctor.years_of_experience} years</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-zinc-500 dark:text-zinc-400">Phone</span>
-                                            <span className="font-medium">{selectedDoctor.phone}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h3 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-500 to-cyan-600 bg-clip-text text-transparent">Professional Details</h3>
-                                    <div className="bg-zinc-50 dark:bg-zinc-700/40 rounded-xl p-4 space-y-3">
-                                        <div className="flex justify-between">
-                                            <span className="text-zinc-500 dark:text-zinc-400">License Number</span>
-                                            <span className="font-medium">{selectedDoctor.registration_no}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-zinc-500 dark:text-zinc-400">Degree</span>
-                                            <span className="font-medium">{selectedDoctor.description}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-zinc-500 dark:text-zinc-400">Office Address</span>
-                                            <span className="font-medium">{selectedDoctor.address}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-zinc-500 dark:text-zinc-400">Application Date</span>
-                                            <span className="font-medium">{formatDate(selectedDoctor.created_at)}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h3 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-500 to-cyan-600 bg-clip-text text-transparent">Bio</h3>
-                                    <div className="bg-zinc-50 dark:bg-zinc-700/40 rounded-xl p-4">
-                                        <p className="text-zinc-700 dark:text-zinc-300">{selectedDoctor.bio}</p>
-                                    </div>
-                                </div>
+                    ) : selectedDoctor ? (
+                        <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-xl p-6">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-2xl font-bold">Doctor Application Details</h2>
+                                <Button variant="outline" onClick={() => setSelectedDoctor(null)}>
+                                    <Icon icon="ph:arrow-left-bold" className="w-5 h-5 mr-2" />
+                                    Back to Applications
+                                </Button>
                             </div>
 
-                            <div className="space-y-6">
-                                <div>
-                                    <h3 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-500 to-cyan-600 bg-clip-text text-transparent">Uploaded Documents</h3>
-                                    <div className="bg-zinc-50 dark:bg-zinc-700/40 rounded-xl p-4 space-y-4">
-                                        <div className="flex justify-between items-center">
-                                            <div>
-                                                <h4 className="font-medium">Medical License</h4>
-                                                <p className="text-sm text-zinc-500 dark:text-zinc-400">Verification document</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-6">
+                                    <div>
+                                        <h3 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-500 to-cyan-600 bg-clip-text text-transparent">Personal Information</h3>
+                                        <div className="bg-zinc-50 dark:bg-zinc-700/40 rounded-xl p-4 space-y-3">
+                                            <div className="flex justify-between">
+                                                <span className="text-zinc-500 dark:text-zinc-400">Full Name</span>
+                                                <span className="font-medium">{selectedDoctor.first_name} {selectedDoctor.last_name}</span>
                                             </div>
-                                            <Button
-                                                onClick={() => setViewingDocs({ type: 'license', url: selectedDoctor.license_url })}
-                                                variant="outline"
-                                                className="text-blue-600 dark:text-blue-400"
-                                            >
-                                                <Icon icon="ph:eye-bold" className="w-4 h-4 mr-2" />
-                                                View Document
-                                            </Button>
-                                        </div>
-
-                                        <div className="flex justify-between items-center">
-                                            <div>
-                                                <h4 className="font-medium">Medical Degree</h4>
-                                                <p className="text-sm text-zinc-500 dark:text-zinc-400">Educational qualification</p>
+                                            <div className="flex justify-between">
+                                                <span className="text-zinc-500 dark:text-zinc-400">Specialty</span>
+                                                <span className="font-medium">{selectedDoctor.specializations}</span>
                                             </div>
-                                            <Button
-                                                onClick={() => setViewingDocs({ type: 'degree', url: selectedDoctor.degree_url })}
-                                                variant="outline"
-                                                className="text-blue-600 dark:text-blue-400"
-                                            >
-                                                <Icon icon="ph:eye-bold" className="w-4 h-4 mr-2" />
-                                                View Document
-                                            </Button>
+                                            <div className="flex justify-between">
+                                                <span className="text-zinc-500 dark:text-zinc-400">Experience</span>
+                                                <span className="font-medium">{selectedDoctor.years_of_experience} years</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-zinc-500 dark:text-zinc-400">Phone</span>
+                                                <span className="font-medium">{selectedDoctor.phone}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h3 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-500 to-cyan-600 bg-clip-text text-transparent">Professional Details</h3>
+                                        <div className="bg-zinc-50 dark:bg-zinc-700/40 rounded-xl p-4 space-y-3">
+                                            <div className="flex justify-between">
+                                                <span className="text-zinc-500 dark:text-zinc-400">License Number</span>
+                                                <span className="font-medium">{selectedDoctor.registration_no}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-zinc-500 dark:text-zinc-400">Degree</span>
+                                                <span className="font-medium">{selectedDoctor.description}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-zinc-500 dark:text-zinc-400">Office Address</span>
+                                                <span className="font-medium">{selectedDoctor.address}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-zinc-500 dark:text-zinc-400">Application Date</span>
+                                                <span className="font-medium">{formatDate(selectedDoctor.created_at)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h3 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-500 to-cyan-600 bg-clip-text text-transparent">Bio</h3>
+                                        <div className="bg-zinc-50 dark:bg-zinc-700/40 rounded-xl p-4">
+                                            <p className="text-zinc-700 dark:text-zinc-300">{selectedDoctor.bio}</p>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="mt-auto pt-6">
-                                    <h3 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-500 to-cyan-600 bg-clip-text text-transparent">Verification Decision</h3>
-                                    <div className="bg-zinc-50 dark:bg-zinc-700/40 rounded-xl p-4 space-y-4">
-                                        <p className="text-sm text-zinc-700 dark:text-zinc-300">
-                                            Please review all the provided information and documents carefully before making a decision.
-                                        </p>
-
-                                        <div className="flex gap-4">
-                                            <Button
-                                                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                                                onClick={() => handleApproveDoctor(selectedDoctor.id)}
-                                            >
-                                                <Icon icon="ph:check-bold" className="w-5 h-5 mr-2" />
-                                                Approve Doctor
-                                            </Button>
-
-                                            <Button
-                                                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-                                                onClick={() => handleRejectDoctor(selectedDoctor.id)}
-                                            >
-                                                <Icon icon="ph:x-bold" className="w-5 h-5 mr-2" />
-                                                Reject Application
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <>
-                        <div className="flex justify-between items-center mb-6">
-                            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-cyan-600 bg-clip-text text-transparent">
-                                Doctor Verification
-                            </h1>
-                            <Button
-                                onClick={fetchPendingApplications}
-                                variant="outline"
-                                className="text-blue-600 dark:text-blue-400"
-                            >
-                                <Icon icon="ph:arrows-clockwise-bold" className="w-5 h-5 mr-2" />
-                                Refresh
-                            </Button>
-                        </div>
-
-                        {applications.length === 0 ? (
-                            <Card className="p-8 text-center">
-                                <Icon icon="ph:check-circle-duotone" className="w-16 h-16 mx-auto text-green-500 mb-4" />
-                                <h2 className="text-2xl font-bold mb-2">No Pending Applications</h2>
-                                <p className="text-zinc-600 dark:text-zinc-400">There are no doctor applications waiting for verification.</p>
-                            </Card>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {applications.map((application) => (
-                                    <motion.div
-                                        key={application.id}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.3 }}
-                                        className="bg-white dark:bg-zinc-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"
-                                    >
-                                        <div className="p-6">
-                                            <div className="flex items-start justify-between mb-4">
+                                <div className="space-y-6">
+                                    <div>
+                                        <h3 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-500 to-cyan-600 bg-clip-text text-transparent">Uploaded Documents</h3>
+                                        <div className="bg-zinc-50 dark:bg-zinc-700/40 rounded-xl p-4 space-y-4">
+                                            <div className="flex justify-between items-center">
                                                 <div>
-                                                    <h3 className="text-lg font-bold">{application.first_name} {application.last_name}</h3>
-                                                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{application.specializations}</p>
+                                                    <h4 className="font-medium">Medical License</h4>
+                                                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Verification document</p>
                                                 </div>
-                                                <span className="px-3 py-1 text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-800/30 dark:text-yellow-200 rounded-full">
-                                                    Pending
-                                                </span>
+                                                <Button
+                                                    onClick={() => setViewingDocs({ type: 'license', url: selectedDoctor.license_url })}
+                                                    variant="outline"
+                                                    className="text-blue-600 dark:text-blue-400"
+                                                >
+                                                    <Icon icon="ph:eye-bold" className="w-4 h-4 mr-2" />
+                                                    View Document
+                                                </Button>
                                             </div>
 
-                                            <div className="space-y-2 mb-5">
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-zinc-500 dark:text-zinc-400">License</span>
-                                                    <span>{application.registration_no}</span>
+                                            <div className="flex justify-between items-center">
+                                                <div>
+                                                    <h4 className="font-medium">Medical Degree</h4>
+                                                    <p className="text-sm text-zinc-500 dark:text-zinc-400">Educational qualification</p>
                                                 </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-zinc-500 dark:text-zinc-400">Experience</span>
-                                                    <span>{application.years_of_experience} years</span>
-                                                </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-zinc-500 dark:text-zinc-400">Applied on</span>
-                                                    <span>{formatDate(application.created_at)}</span>
-                                                </div>
+                                                <Button
+                                                    onClick={() => setViewingDocs({ type: 'degree', url: selectedDoctor.degree_url })}
+                                                    variant="outline"
+                                                    className="text-blue-600 dark:text-blue-400"
+                                                >
+                                                    <Icon icon="ph:eye-bold" className="w-4 h-4 mr-2" />
+                                                    View Document
+                                                </Button>
                                             </div>
-
-                                            <Button
-                                                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                                                onClick={() => setSelectedDoctor(application)}
-                                            >
-                                                Review Application
-                                            </Button>
                                         </div>
-                                    </motion.div>
-                                ))}
+                                    </div>
+
+                                    <div className="mt-auto pt-6">
+                                        <h3 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-500 to-cyan-600 bg-clip-text text-transparent">Verification Decision</h3>
+                                        <div className="bg-zinc-50 dark:bg-zinc-700/40 rounded-xl p-4 space-y-4">
+                                            <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                                                Please review all the provided information and documents carefully before making a decision.
+                                            </p>
+
+                                            <div className="flex gap-4">
+                                                <Button
+                                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                                                    onClick={() => handleApproveDoctor(selectedDoctor.id)}
+                                                >
+                                                    <Icon icon="ph:check-bold" className="w-5 h-5 mr-2" />
+                                                    Approve Doctor
+                                                </Button>
+
+                                                <Button
+                                                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                                                    onClick={() => handleRejectDoctor(selectedDoctor.id)}
+                                                >
+                                                    <Icon icon="ph:x-bold" className="w-5 h-5 mr-2" />
+                                                    Reject Application
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        )}
-                    </>
-                )}
+                        </div>
+                    ) : (
+                        <>
+                            <div className="flex justify-between items-center mb-6">
+                                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-cyan-600 bg-clip-text text-transparent">
+                                    Doctor Verification
+                                </h1>
+                                <Button
+                                    onClick={fetchPendingApplications}
+                                    variant="outline"
+                                    className="text-blue-600 dark:text-blue-400"
+                                >
+                                    <Icon icon="ph:arrows-clockwise-bold" className="w-5 h-5 mr-2" />
+                                    Refresh
+                                </Button>
+                            </div>
+
+                            {applications.length === 0 ? (
+                                <Card className="p-8 text-center">
+                                    <Icon icon="ph:check-circle-duotone" className="w-16 h-16 mx-auto text-green-500 mb-4" />
+                                    <h2 className="text-2xl font-bold mb-2">No Pending Applications</h2>
+                                    <p className="text-zinc-600 dark:text-zinc-400">There are no doctor applications waiting for verification.</p>
+                                </Card>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {applications.map((application) => (
+                                        <motion.div
+                                            key={application.id}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.3 }}
+                                            className="bg-white dark:bg-zinc-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"
+                                        >
+                                            <div className="p-6">
+                                                <div className="flex items-start justify-between mb-4">
+                                                    <div>
+                                                        <h3 className="text-lg font-bold">{application.first_name} {application.last_name}</h3>
+                                                        <p className="text-sm text-zinc-500 dark:text-zinc-400">{application.specializations}</p>
+                                                    </div>
+                                                    <span className="px-3 py-1 text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-800/30 dark:text-yellow-200 rounded-full">
+                                                        Pending
+                                                    </span>
+                                                </div>
+
+                                                <div className="space-y-2 mb-5">
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-zinc-500 dark:text-zinc-400">License</span>
+                                                        <span>{application.registration_no}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-zinc-500 dark:text-zinc-400">Experience</span>
+                                                        <span>{application.years_of_experience} years</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-zinc-500 dark:text-zinc-400">Applied on</span>
+                                                        <span>{formatDate(application.created_at)}</span>
+                                                    </div>
+                                                </div>
+
+                                                <Button
+                                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                                                    onClick={() => setSelectedDoctor(application)}
+                                                >
+                                                    Review Application
+                                                </Button>
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
             </div>
-        </div>
+        </Layout>
     );
 }
