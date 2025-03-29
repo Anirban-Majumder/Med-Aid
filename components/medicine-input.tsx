@@ -178,7 +178,9 @@ export default function OCRModal({ imgFile }: MedicineModalProps) {
     // Save symptoms with their start dates
     const formattedSymptoms = symptoms.map(symptom => ({
       name: symptom,
-      startDate: new Date().toISOString().split('T')[0]
+      startDate: new Date().toISOString().split('T')[0],
+      endDate:null,
+      isActive:true
     }));
 
     const currentSymptoms = sessionData.profile?.symptoms ?? [];
