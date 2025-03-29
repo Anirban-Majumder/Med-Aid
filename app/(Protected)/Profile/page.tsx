@@ -7,6 +7,8 @@ import Symptom from "@/components/symptom-upload";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { SessionContext } from "@/lib/supabase/usercontext";
 import { ImageIcon, Loader2, Edit } from "lucide-react";
@@ -16,6 +18,7 @@ export default function Profile() {
   const { sessionData, setSessionData } = useContext(SessionContext);
   const router = useRouter();
   const isLoading = false;
+  const supabase = createClient();
   const symptoms = sessionData.profile?.symptoms;
   const [isEditing, setIsEditing] = useState(false);
   const [loadingMedicineId, setLoadingMedicineId] = useState<string | null>(null);
@@ -36,6 +39,52 @@ export default function Profile() {
       opacity: 1,
       y: 0,
       transition: { type: "spring", stiffness: 300, damping: 24 }
+    }
+  };
+
+  const handleActive = async (symptom: any) => {
+    try {
+      const currentDate = new Date().toISOString().split('T')[0];
+    const updatedSymptom = {
+          ...symptom,
+          isActive: false,
+          endDate: currentDate,
+        };
+
+      // Get current symptoms array from profile
+      const { data: profileData, error: fetchError } = await supabase
+        .from('profiles')
+        .select('symptoms')
+        .eq('user_id', sessionData?.profile?.user_id)
+        .single();
+  
+      if (fetchError) throw fetchError;
+  
+      // Update the specific symptom in the array
+      const updatedSymptoms = profileData.symptoms.map((s: any) =>
+        s.name === symptom.name ? updatedSymptom : s
+      );
+  
+      // Update the entire symptoms array in the profile table
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          symptoms: updatedSymptoms 
+        })
+        .eq('user_id', sessionData?.profile?.user_id);
+  
+      if (updateError) throw updateError;
+  
+      // Update local state
+      setSessionData((prev: any) => ({
+        ...prev,
+        profile: {
+          ...prev.profile,
+          symptoms: updatedSymptoms
+        }
+      }));
+    } catch (error) {
+      console.error('Error updating symptom:', error);
     }
   };
 
@@ -277,22 +326,56 @@ export default function Profile() {
                   <h2 className="text-lg sm:text-xl font-semibold">Symptoms</h2>
                   <Symptom />
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
-                  <ul className="list-disc list-inside">
-                    {symptoms?.length === 0 ? (
-                      <p className="text-gray-600 dark:text-gray-300">
-                        You have not added any symptoms.
-                      </p>
-                    ) : (
-                      symptoms?.map((symptom: any, index: any) => (
-                        <li key={index} className="text-gray-800 dark:text-gray-100">
-                          {symptom.name} (from {symptom.startDate.split("-").reverse().join("-")}
-                          {symptom.isActive ? null : ` to ${symptom.endDate?.split("-").reverse().join("-")}`})
-                        </li>
-                      ))
-                    )}
-                  </ul>
-                </div>
+<div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+  <ul className="space-y-3">
+    {symptoms?.length === 0 ? (
+      <p className="text-gray-600 dark:text-gray-300">
+        You have not added any symptoms.
+      </p>
+    ) : (
+      symptoms
+        ?.sort((a, b) => {
+          if (a.isActive && !b.isActive) return -1;
+          if (!a.isActive && b.isActive) return 1;
+          return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+        }).map((symptom: any, index: any) => (
+  <motion.li
+    key={index}
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    whileHover={{ scale: 1.02 }}
+    className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 transition-all"
+  >
+    <div className="flex justify-between items-start">
+      <div className="flex flex-col gap-1">
+        <span className="font-medium text-gray-900 dark:text-gray-100">
+          {symptom.name}
+        </span>
+        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          <span>From: {symptom.startDate.split("-").reverse().join("-")}</span>
+          {!symptom.isActive && (
+            <>
+            <span>•</span>
+              <span>To: {symptom.endDate?.split("-").reverse().join("-")}</span>
+            </>
+          )}
+        </div>
+      </div>
+      {symptom.isActive?(
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={true}
+            onCheckedChange={() => handleActive(symptom)}
+            className="data-[state=checked]:bg-cyan-500"
+          />
+        </div>):null
+      }
+    </div>
+  </motion.li>
+      ))
+    )}
+  </ul>
+</div>
               </motion.div>
             </div>
           </motion.div>
