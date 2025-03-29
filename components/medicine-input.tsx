@@ -72,11 +72,15 @@ export default function OCRModal({ imgFile }: MedicineModalProps) {
           }
 
           if (data.meds && Array.isArray(data.meds)) {
+
+
+
             data.meds.forEach((med: any) => {
+              //fix mid
               medicinesList.push({
                 name: med.name || "",
                 description: med.description || "",
-                eat_upto: med.eat_for !== "null" ? med.eat_for : new Date().toISOString().split('T')[0],
+                eat_upto: med.eat_for !== "null" ? calculateEndDate(med.eat_for+"d") : new Date().toISOString().split('T')[0],
                 m_id: Date.now().toString(),
                 times_to_eat: Array.isArray(med.times_to_eat) ? med.times_to_eat : ["0800"],
                 side_effect: Array.isArray(med.side_effect) ? med.side_effect : [],
@@ -86,15 +90,7 @@ export default function OCRModal({ imgFile }: MedicineModalProps) {
           }
 
           setSymptoms(Array.from(symptomsSet));
-          setMedicines(medicinesList.length > 0 ? medicinesList : [{
-            name: "",
-            description: "",
-            eat_upto: new Date().toISOString().split('T')[0],
-            times_to_eat: ["0800"],
-            m_id: Date.now().toString(),
-            side_effect: [],
-            uses: "",
-          }]);
+          setMedicines(medicinesList);
 
           setIsOpen(true);
         } else {
@@ -189,6 +185,7 @@ export default function OCRModal({ imgFile }: MedicineModalProps) {
 
     if (updateError) {
       console.error("Error updating profile data:", updateError);
+      setIsSaving(false);
       return;
     }
 
@@ -202,14 +199,14 @@ export default function OCRModal({ imgFile }: MedicineModalProps) {
 
     // Insert each medicine record into the 'medicine' table
     for (const med of medicines) {
-      const { error } = await supabase.from("medicine").insert({
+      const { error } = await supabase.from("medicines").insert({
         user_id: user_id,
         name: med.name,
         description: med.description,
         eat_upto: med.eat_upto,
         m_id: med.m_id,
         times_to_eat: med.times_to_eat,
-        side_effect: med.side_effect || [],
+        side_effects: med.side_effect || [],
         uses: med.uses || "",
       });
 
