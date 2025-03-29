@@ -52,7 +52,7 @@ export default function Home() {
           </h1>
 
           <p className="text-lg sm:text-xl md:text-2xl mb-8 max-w-3xl mx-auto text-gray-600 dark:text-gray-300 animate-fade-in-delayed px-2">
-            PharmaAI is your trusted companion for all your medical needs. We
+            Med-Aid is your trusted companion for all your medical needs. We
             provide intelligent medication management, appointment scheduling,
             and personalized health tracking.
           </p>
@@ -120,7 +120,7 @@ export default function Home() {
       <section className="py-16 sm:py-20 md:py-24 bg-gray-50 dark:bg-gray-800/30">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-10 sm:mb-16">
-            How PharmaAI Helps You
+            How Med-Aid Helps You
           </h2>
 
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-12 max-w-6xl mx-auto">
@@ -352,7 +352,7 @@ export default function Home() {
                 name: "Sarah Johnson",
                 role: "Patient with chronic condition",
                 quote:
-                  "PharmaAI has transformed how I manage my medications. I never miss a dose now, and the health tracking features have given me insights I never had before.",
+                  "Med-Aid has transformed how I manage my medications. I never miss a dose now, and the health tracking features have given me insights I never had before.",
                 rating: 5,
                 image:
                   "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=faces&q=80",
@@ -361,7 +361,7 @@ export default function Home() {
                 name: "Dr. Michael Chen",
                 role: "Healthcare Provider",
                 quote:
-                  "As a doctor, I've recommended PharmaAI to many of my patients. The improvement in medication adherence has been remarkable and leads to better outcomes.",
+                  "As a doctor, I've recommended Med-Aid to many of my patients. The improvement in medication adherence has been remarkable and leads to better outcomes.",
                 rating: 5,
                 image:
                   "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=150&h=150&fit=crop&crop=faces&q=80",
@@ -455,7 +455,7 @@ export default function Home() {
             <div className="absolute -top-10 -left-10 w-20 h-20 border-2 border-blue-200 dark:border-blue-800 rounded-full opacity-50"></div>
             <div className="absolute -bottom-10 -right-10 w-20 h-20 border-2 border-purple-200 dark:border-purple-800 rounded-full opacity-50"></div>
 
-            <h2 className="text-4xl font-bold mb-6">Why Trust PharmaAI</h2>
+            <h2 className="text-4xl font-bold mb-6">Why Trust Med-Aid</h2>
             <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
               Built with privacy and security at its core. Our platform ensures
               your health data stays private while providing you with the best
@@ -545,7 +545,7 @@ export default function Home() {
             </div>
 
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              © {new Date().getFullYear()} PharmaAI. All rights reserved.
+              © {new Date().getFullYear()} Med-Aid. All rights reserved.
             </p>
           </div>
         </div>
