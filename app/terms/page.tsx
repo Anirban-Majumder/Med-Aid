@@ -108,7 +108,7 @@ export default function Terms() {
                 Account Creation
               </h2>
               <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                To use certain features of Pharma-AI, you may be required to create an account.
+                To use certain features of Med-Aid, you may be required to create an account.
                 You are responsible for maintaining the confidentiality of your account information and all activities under your account.
               </p>
             </div>
@@ -123,11 +123,11 @@ export default function Terms() {
               <ul className="list-none space-y-4">
                 <li className="flex items-start">
                   <span className="w-2 h-2 mt-2 rounded-full bg-cyan-500 dark:bg-cyan-400 mr-3"></span>
-                  <p className="flex-1 text-gray-600 dark:text-gray-400">By providing us with personal and financial data, you grant Pharma-AI a license to collect, process, store, and potentially share that data as part of our general operations.</p>
+                  <p className="flex-1 text-gray-600 dark:text-gray-400">By providing us with personal and financial data, you grant Med-Aid a license to collect, process, store, and potentially share that data as part of our general operations.</p>
                 </li>
                 <li className="flex items-start">
                   <span className="w-2 h-2 mt-2 rounded-full bg-cyan-500 dark:bg-cyan-400 mr-3"></span>
-                  <p className="flex-1 text-gray-600 dark:text-gray-400">The nature of data sharing, including potential third-party use, is complex and subject to a range of interpretations. Pharma-AI may use your data in ways that align with evolving industry practices.</p>
+                  <p className="flex-1 text-gray-600 dark:text-gray-400">The nature of data sharing, including potential third-party use, is complex and subject to a range of interpretations. Med-Aid may use your data in ways that align with evolving industry practices.</p>
                 </li>
               </ul>
             </div>
@@ -142,12 +142,12 @@ export default function Terms() {
               </h2>
               <div className="space-y-4">
                 <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                  While Pharma-AI strives to offer accurate tools and health assistance suggestions,
+                  While Med-Aid strives to offer accurate tools and health assistance suggestions,
                   we make no guarantees regarding the results or the completeness of our advice.
                   Users are encouraged to consult with healthcare professionals for further guidance.
                 </p>
                 <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                  Pharma-AI shall not be liable for any losses, damages, or other consequences arising from the use of this website,
+                  Med-Aid shall not be liable for any losses, damages, or other consequences arising from the use of this website,
                   including any issues related to the accuracy of medical information or third-party services.
                 </p>
               </div>
@@ -164,7 +164,7 @@ export default function Terms() {
         className="py-8 text-center"
       >
         <div className="text-sm text-gray-500 dark:text-gray-400">
-          © {new Date().getFullYear()} Pharma-AI. All rights reserved.
+          © {new Date().getFullYear()} Med-Aid. All rights reserved.
         </div>
       </motion.footer>
     </div>

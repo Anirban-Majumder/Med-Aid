@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   title: "Pharma AI",
   description: "World's first AI-powered Pharmacy",
   appleWebApp: {
-    title: "Pharma-AI",
+    title: "Med-Aid",
   },
 };
 
@@ -39,7 +39,7 @@ export default function RootLayout({
 
   return (
     <html suppressHydrationWarning={true} lang='en'>
-      <meta name="apple-mobile-web-app-title" content="Pharma-AI" />
+      <meta name="apple-mobile-web-app-title" content="Med-Aid" />
       <body
         className={`${geistSans.variable} ${geistMono.variable} background text-foreground h-full flex flex-col justify-between antialiased`}
       >

@@ -210,10 +210,10 @@ export default function PrivacyPolicy() {
             <p className="text-gray-600 dark:text-gray-400">
               If you have any questions about our Privacy Policy, please contact us at:
               <a
-                href="mailto:privacy@pharma-ai.com"
+                href="mailto:privacy@Med-Aid.com"
                 className="block mt-2 text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors"
               >
-                privacy@pharma-ai.com
+                privacy@Med-Aid.com
               </a>
             </p>
           </motion.div>
@@ -228,7 +228,7 @@ export default function PrivacyPolicy() {
         className="py-8 text-center"
       >
         <div className="text-sm text-gray-500 dark:text-gray-400">
-          © {new Date().getFullYear()} Pharma-AI. All rights reserved.
+          © {new Date().getFullYear()} Med-Aid. All rights reserved.
         </div>
       </motion.footer>
     </div>
