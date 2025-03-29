@@ -95,7 +95,7 @@ const SetUpPage = () => {
                     if (preferences.telegramMessages) {
                         const shouldRegister = window.confirm("Telegram registration is available. Do you want to register now?");
                         if (shouldRegister) {
-                            window.open(`https://t.me/Pharma_a_i_bot?start=${user_id}`, '_blank');
+                            window.open(`https://t.me/MeD_Aid_0Bot?start=${user_id}`, '_blank');
                         }
                     }
                 }
