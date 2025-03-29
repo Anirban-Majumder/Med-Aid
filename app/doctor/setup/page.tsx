@@ -11,6 +11,25 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Loader2, ArrowRight, Upload } from 'lucide-react';
 
+interface FormData {
+    firstName: string;
+    lastName: string;
+    specialty: string;
+    licenseNumber: string;
+    yearsOfExperience: string;
+    description: string;  // This is for certifications
+    phone: string;
+    address: string;
+    bio: string;
+  }
+
+  const formatSpecialties = (specialtyString: string): string[] => {
+    return specialtyString
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+};
+  
 export default function DoctorSetup() {
     const router = useRouter();
     const supabase = createClient();
@@ -22,7 +41,7 @@ export default function DoctorSetup() {
         specialty: '',
         licenseNumber: '',
         yearsOfExperience: '',
-        hospitalAffiliation: '',
+        description: '',
         phone: '',
         address: '',
         bio: ''
@@ -45,7 +64,7 @@ export default function DoctorSetup() {
                 try {
                     // First, check if the table exists by making a safe query
                     const { count, error: tableError } = await supabase
-                        .from('doctor_profiles')
+                        .from('doc_profiles')
                         .select('*', { count: 'exact', head: true });
 
                     // If there's an error with the table query, it might not exist yet
@@ -57,7 +76,7 @@ export default function DoctorSetup() {
                     // If we successfully queried the table, now check for the user's profile
                     try {
                         const { data, error: profileError } = await supabase
-                            .from('doctor_profiles')
+                            .from('doc_profiles')
                             .select('*')
                             .eq('user_id', sessionData.session.user.id)
                             .maybeSingle();
@@ -129,6 +148,9 @@ export default function DoctorSetup() {
         if (!formData.licenseNumber.trim()) errors.licenseNumber = 'License number is required';
         if (!formData.yearsOfExperience.trim()) errors.yearsOfExperience = 'Years of experience is required';
         if (!formData.phone.trim()) errors.phone = 'Phone number is required';
+        if (!formData.address.trim()) errors.address = 'Office address is required';
+        if (!formData.bio.trim()) errors.bio = 'Bio is required';
+        if (!formData.description.trim()) errors.description = 'Certifications are required';
 
         // File validation
         if (!licenseFile) errors.licenseFile = 'License document is required';
@@ -166,7 +188,7 @@ export default function DoctorSetup() {
             if (licenseFile) {
                 const licenseFileName = `${userId}/doctor_license_${Date.now()}.${licenseFile.name.split('.').pop()}`;
                 const { error: licenseError, data: licenseData } = await supabase.storage
-                    .from('prescriptions') // Store in prescriptions bucket
+                    .from('prescription') // Store in prescriptions bucket
                     .upload(licenseFileName, licenseFile, {
                         cacheControl: '3600',
                         upsert: true
@@ -176,7 +198,7 @@ export default function DoctorSetup() {
 
                 const licensePath = licenseData?.path;
                 if (licensePath) {
-                    const { data } = supabase.storage.from('prescriptions').getPublicUrl(licensePath);
+                    const { data } = supabase.storage.from('prescription').getPublicUrl(licensePath);
                     licenseUrl = data.publicUrl;
                 }
             }
@@ -186,7 +208,7 @@ export default function DoctorSetup() {
             if (degreeFile) {
                 const degreeFileName = `${userId}/doctor_degree_${Date.now()}.${degreeFile.name.split('.').pop()}`;
                 const { error: degreeError, data: degreeData } = await supabase.storage
-                    .from('prescriptions') // Store in prescriptions bucket
+                    .from('prescription') // Store in prescriptions bucket
                     .upload(degreeFileName, degreeFile, {
                         cacheControl: '3600',
                         upsert: true
@@ -196,37 +218,35 @@ export default function DoctorSetup() {
 
                 const degreePath = degreeData?.path;
                 if (degreePath) {
-                    const { data } = supabase.storage.from('prescriptions').getPublicUrl(degreePath);
+                    const { data } = supabase.storage.from('prescription').getPublicUrl(degreePath);
                     degreeUrl = data.publicUrl;
                 }
             }
 
             // Create doctor profile in Supabase
             const { error: profileError } = await supabase
-                .from('doctor_profiles')
+                .from('doc_profiles')
                 .insert({
-                    user_id: userId,
-                    email: userEmail,
+                    created_at: new Date().toISOString(),
                     first_name: formData.firstName,
                     last_name: formData.lastName,
-                    specialty: formData.specialty,
-                    license_number: formData.licenseNumber,
-                    years_of_experience: parseInt(formData.yearsOfExperience) || 0,
-                    hospital_affiliation: formData.hospitalAffiliation,
                     phone: formData.phone,
+                    description: formData.description,
+                    email: userEmail,
+                    registration_no: formData.licenseNumber,
+                    specializations: formatSpecialties(formData.specialty), // Convert to array
+                    years_of_experience: parseInt(formData.yearsOfExperience) || 0,
                     address: formData.address,
                     bio: formData.bio,
                     license_url: licenseUrl,
                     degree_url: degreeUrl,
-                    is_verified: false,
-                    is_approved: false,
-                    created_at: new Date().toISOString()
+                    is_verified: false
                 });
 
             if (profileError) throw profileError;
 
             // Create entry in doctor_documents table to track documents separately
-            const { error: documentsError } = await supabase
+            /*const { error: documentsError } = await supabase
                 .from('doctor_documents')
                 .insert({
                     doctor_id: userId,
@@ -239,7 +259,7 @@ export default function DoctorSetup() {
             if (documentsError) {
                 console.warn('Error creating document record:', documentsError);
                 // Continue anyway as the main profile was created
-            }
+            }*/
 
             // Redirect to verification page
             router.push('/doctor/verify');
@@ -346,25 +366,28 @@ export default function DoctorSetup() {
 
                                 {/* Professional Information */}
                                 <div className="space-y-3">
-                                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                                        Medical Specialty <span className="text-red-500">*</span>
-                                    </label>
-                                    <Input
-                                        type="text"
-                                        name="specialty"
-                                        value={formData.specialty}
-                                        onChange={handleChange}
-                                        className={formErrors.specialty ? "border-red-500" : ""}
-                                        placeholder="e.g., Cardiology, Pediatrics"
-                                    />
-                                    {formErrors.specialty && (
-                                        <p className="text-red-500 text-xs mt-1">{formErrors.specialty}</p>
-                                    )}
-                                </div>
+    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        Medical Specialties <span className="text-red-500">*</span>
+    </label>
+    <Input
+        type="text"
+        name="specialty"
+        value={formData.specialty}
+        onChange={handleChange}
+        className={formErrors.specialty ? "border-red-500" : ""}
+        placeholder="e.g., Cardiology, Pediatrics, Internal Medicine"
+    />
+    <span className="text-xs text-zinc-500 dark:text-zinc-400">
+        Separate multiple specialties with commas
+    </span>
+    {formErrors.specialty && (
+        <p className="text-red-500 text-xs mt-1">{formErrors.specialty}</p>
+    )}
+</div>
 
                                 <div className="space-y-3">
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                                        License Number <span className="text-red-500">*</span>
+                                        Registration Number <span className="text-red-500">*</span>
                                     </label>
                                     <Input
                                         type="text"
@@ -397,15 +420,19 @@ export default function DoctorSetup() {
 
                                 <div className="space-y-3">
                                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                                        Hospital/Clinic Affiliation
+                                        Certifications (comma separated)<span className="text-red-500">*</span>
                                     </label>
                                     <Input
                                         type="text"
-                                        name="hospitalAffiliation"
-                                        value={formData.hospitalAffiliation}
+                                        name="description"
+                                        value={formData.description}
                                         onChange={handleChange}
-                                        placeholder="e.g., Mayo Clinic, City Hospital"
+                                        placeholder="e.g., MBBS, MD, DNB"
+                                        className={formErrors.description ? "border-red-500" : ""}
                                     />
+                                    {formErrors.description && (
+                                        <p className="text-red-500 text-xs mt-1">{formErrors.description}</p>
+                                    )}
                                 </div>
 
                                 {/* Contact Information */}
