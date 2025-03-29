@@ -81,13 +81,13 @@ export default function DoctorsPage() {
             >
               <CardContent className="flex flex-col items-start gap-3 p-4">
                 {/* Doctor's Name */}
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{doctor.first_name} {doctor.last_name}</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Dr. {doctor.first_name} {doctor.last_name}</h2>
 
                 {/* Specializations */}
                 <div className="flex flex-wrap gap-2">
-                  {(Array.isArray(selectedDoctor?.specializations)
-                    ? selectedDoctor?.specializations
-                    : selectedDoctor?.specializations?.split(",") || []
+                  {(Array.isArray(doctor.specializations)
+                    ? doctor.specializations
+                    : doctor.specializations?.split(",") || []
                   ).map((spec, index) => (
                     <span
                       key={index}
