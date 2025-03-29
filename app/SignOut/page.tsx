@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { SessionContext } from "@/lib/supabase/usercontext";
@@ -11,15 +11,23 @@ import type { SessionData } from "@/lib/supabase/usercontext";
 export default function SignOut() {
   const router = useRouter();
   const { setSessionData } = useContext(SessionContext);
+  const [isLoading, setIsLoading] = useState(false);
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setSessionData({ session: null, profile: null, medicines: [] } as SessionData);
-    router.push("/SignIn");
+    setIsLoading(true);
+    try {
+      await supabase.auth.signOut();
+      setSessionData({ session: null, profile: null, medicines: [] } as SessionData);
+      router.push("/SignIn");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -97,26 +105,55 @@ export default function SignOut() {
 
             <motion.div variants={itemVariants} className="space-y-4">
               <motion.button
-                whileHover={{ scale: 1.03, boxShadow: "0 5px 15px rgba(0,0,0,0.1)" }}
-                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: isLoading ? 1 : 1.03, boxShadow: isLoading ? "none" : "0 5px 15px rgba(0,0,0,0.1)" }}
+                whileTap={{ scale: isLoading ? 1 : 0.97 }}
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 onClick={handleSignOut}
-                className="w-full py-3 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center"
+                disabled={isLoading}
+                className={`w-full py-3 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white rounded-lg shadow-md transition-all duration-200 flex items-center justify-center ${isLoading ? 'opacity-80 cursor-not-allowed' : 'hover:shadow-lg'}`}
               >
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                  />
-                </svg>
-                Sign Out
+                {isLoading ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Signing out...
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-5 h-5 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                      />
+                    </svg>
+                    Sign Out
+                  </>
+                )}
               </motion.button>
 
               <motion.button
@@ -124,7 +161,8 @@ export default function SignOut() {
                 whileTap={{ scale: 0.97 }}
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 onClick={handleCancel}
-                className="w-full py-3 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center"
+                disabled={isLoading}
+                className={`w-full py-3 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-200 flex items-center justify-center ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-200 dark:hover:bg-gray-600'}`}
               >
                 <svg
                   className="w-5 h-5 mr-2"
