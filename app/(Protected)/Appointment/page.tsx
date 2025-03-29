@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogT
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
+import { toast, Toaster } from "sonner"; // Add this import
+import { Phone } from "lucide-react";
 
 interface Doctor {
   id: number;
@@ -15,6 +17,8 @@ interface Doctor {
   specializations: string;
   description: string;
   years_of_experience: number;
+  email: string;
+  phone: string;
 }
 
 export default function DoctorsPage() {
@@ -43,11 +47,19 @@ export default function DoctorsPage() {
 
   const DocSelected = (doctor: Doctor) => {
     setBookedDoctor(doctor);
-    setIsDialogOpen(true);
+    setIsDialogOpen(false);
+    toast.success(
+        `Your appointment with Dr. ${doctor.first_name} ${doctor.last_name} is under review. The doctor will contact you regarding the timings soon.`,
+        {
+          duration: 4000,
+          position: "bottom-right",
+        }
+      );
   };
 
   return (
     <Layout>
+        <Toaster/>
       <section className="flex flex-col h-full bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -128,9 +140,24 @@ export default function DoctorsPage() {
               </p>
               <p><strong>Certifications:</strong> {selectedDoctor?.description}</p>
               <p><strong>Experience:</strong> {selectedDoctor?.years_of_experience} years</p>
+              <p><strong>Contact via:</strong> 
+                <a 
+                    href={`tel:${selectedDoctor?.phone}`}
+                    className="mx-2 text-gray-200 hover:text-cyan-400 dark:text-gray-200 dark:hover:text-cyan-400"
+                >
+                    {selectedDoctor?.phone}
+                </a>
+                <a 
+                    href={`mailto:${selectedDoctor?.email}`} 
+                    className="mx-2 text-gray-200 hover:text-cyan-400 dark:text-gray-200 dark:hover:text-cyan-400"
+                >
+                    {selectedDoctor?.email}
+                </a>
+            </p>
             </div>
             <DialogFooter className="flex justify-between mt-4">
-              <Button variant="outline" color="danger" onClick={() => setIsDialogOpen(false)}>
+              <Button variant="outline" color="danger" onClick={() => setIsDialogOpen(false)}
+                    className="px-6 py-2 text-lg font-semibold rounded-lg">
                 Close
               </Button>
               <Button
