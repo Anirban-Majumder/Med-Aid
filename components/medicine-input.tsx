@@ -80,7 +80,7 @@ export default function OCRModal({ imgFile }: MedicineModalProps) {
               medicinesList.push({
                 name: med.name || "",
                 description: med.description || "",
-                eat_upto: med.eat_for !== "null" ? calculateEndDate(med.eat_for+"d") : new Date().toISOString().split('T')[0],
+                eat_upto: med.eat_for !== "null" ? calculateEndDate(med.eat_for + "d") : new Date().toISOString().split('T')[0],
                 m_id: Date.now().toString(),
                 times_to_eat: Array.isArray(med.times_to_eat) ? med.times_to_eat : ["0800"],
                 side_effect: Array.isArray(med.side_effect) ? med.side_effect : [],
@@ -206,7 +206,7 @@ export default function OCRModal({ imgFile }: MedicineModalProps) {
         eat_upto: med.eat_upto,
         m_id: med.m_id,
         times_to_eat: med.times_to_eat,
-        side_effects: med.side_effect || [],
+        side_effect: med.side_effect || [], // Changed from side_effects to side_effect
         uses: med.uses || "",
       });
 
@@ -406,7 +406,7 @@ export default function OCRModal({ imgFile }: MedicineModalProps) {
                           {medicine.side_effect?.map((effect, effectIndex) => (
                             <span
                               key={effectIndex}
-                              className="px-2 py-1 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded-full text-sm border border-red-100 dark:border-red-800"
+                              className="px-2 py-1 bg-red-50 text-red-400 dark:bg-red-900/30 dark:text-red-300 rounded-full text-sm border border-red-100 dark:border-red-800"
                             >
                               {effect}
                             </span>

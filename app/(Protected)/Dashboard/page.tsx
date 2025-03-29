@@ -375,22 +375,33 @@ export default function Dashboard() {
                           {medicine.description || "No description available"}
                         </p>
 
-                        {/* Display related symptoms */}
-                        {relatedSymptoms.length > 0 && (
+                        {/* Display side effects and uses */}
+                        {medicine.side_effect?.length > 0 && (
                           <div className="mt-2">
                             <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                              Related Symptoms:
+                              Side Effects:
                             </p>
                             <div className="flex flex-wrap gap-1">
-                              {relatedSymptoms.map((symptom, idx) => (
+                              {medicine.side_effect.map((effect: string, idx: number) => (
                                 <span
                                   key={idx}
-                                  className="px-2 py-0.5 text-xs rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200"
+                                  className="px-2 py-0.5 text-xs rounded-full bg-red-100 dark:bg-grey-400 text-black dark:text-black"
                                 >
-                                  {symptom.name}
+                                  {effect}
                                 </span>
                               ))}
                             </div>
+                          </div>
+                        )}
+
+                        {medicine.uses && (
+                          <div className="mt-2">
+                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                              Uses:
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              {medicine.uses}
+                            </p>
                           </div>
                         )}
 

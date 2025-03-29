@@ -398,6 +398,36 @@ export default function Profile() {
                                 );
                               })()}
 
+                              {/* Display side effects and uses */}
+                              {medicine.side_effect?.length > 0 && (
+                                <div className="mt-2">
+                                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                    Side Effects:
+                                  </p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {medicine.side_effect.map((effect, idx) => (
+                                      <span
+                                        key={idx}
+                                        className="px-2 py-0.5 text-xs rounded-full bg-red-100 dark:bg-black text-grey-400 dark:text-black"
+                                      >
+                                        {effect}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {medicine.uses && (
+                                <div className="mt-2">
+                                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                                    Uses:
+                                  </p>
+                                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    {medicine.uses}
+                                  </p>
+                                </div>
+                              )}
+
                               <div className="flex gap-2 mt-2">
                                 <Button
                                   disabled={isBuyLoading}
