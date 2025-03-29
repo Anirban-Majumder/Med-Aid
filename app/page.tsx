@@ -47,11 +47,11 @@ export default function Home() {
         <div className="max-w-5xl mx-auto relative z-10">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/30 rounded-full blur-3xl -z-10" />
 
-          <h1 className="text-6xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent animate-fade-in">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent animate-fade-in">
             Your Personal Health Assistant
           </h1>
 
-          <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto text-gray-600 dark:text-gray-300 animate-fade-in-delayed">
+          <p className="text-lg sm:text-xl md:text-2xl mb-8 max-w-3xl mx-auto text-gray-600 dark:text-gray-300 animate-fade-in-delayed px-2">
             PharmaAI is your trusted companion for all your medical needs. We
             provide intelligent medication management, appointment scheduling,
             and personalized health tracking.
@@ -117,13 +117,13 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 bg-gray-50 dark:bg-gray-800/30">
+      <section className="py-16 sm:py-20 md:py-24 bg-gray-50 dark:bg-gray-800/30">
         <div className="container mx-auto px-4">
-          <h2 className="text-4xl font-bold text-center mb-16">
+          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-10 sm:mb-16">
             How PharmaAI Helps You
           </h2>
 
-          <div className="grid md:grid-cols-3 gap-12 max-w-6xl mx-auto">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-12 max-w-6xl mx-auto">
             <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow hover:-translate-y-1 duration-300">
               <div className="bg-blue-100 dark:bg-blue-900/30 p-4 rounded-full w-fit mb-6">
                 <Tablet className="w-8 h-8 text-blue-600 dark:text-blue-400" />
@@ -205,27 +205,27 @@ export default function Home() {
           </div>
 
           {/* Doctor Portal Features */}
-          <div className="mt-20 bg-white dark:bg-gray-800/60 p-8 rounded-2xl shadow-xl max-w-4xl mx-auto border border-gray-100 dark:border-gray-700">
-            <h2 className="text-3xl font-bold mb-6 text-center text-gray-800 dark:text-white">
+          <div className="mt-12 sm:mt-16 md:mt-20 bg-white dark:bg-gray-800/60 p-6 sm:p-8 rounded-2xl shadow-xl max-w-4xl mx-auto border border-gray-100 dark:border-gray-700">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-center text-gray-800 dark:text-white">
               Doctor Portal Features
             </h2>
-            <div className="grid md:grid-cols-2 gap-8">
-              <div className="flex items-start gap-4">
+            <div className="grid sm:grid-cols-2 gap-6 sm:gap-8">
+              <div className="flex items-start gap-3 sm:gap-4">
                 <div className="flex-shrink-0 bg-purple-100 dark:bg-purple-900/30 p-3 rounded-full">
-                  <Stethoscope className="w-6 h-6 text-purple-600" />
+                  <Stethoscope className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold mb-2">
+                  <h3 className="text-lg sm:text-xl font-semibold mb-2">
                     Patient Management
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300">
+                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                     Easily track and manage all your patients in one unified
                     platform.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3 sm:gap-4">
                 <div className="flex-shrink-0 bg-blue-100 dark:bg-blue-900/30 p-3 rounded-full">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -237,23 +237,23 @@ export default function Home() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="w-6 h-6 text-blue-600"
+                    className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600"
                   >
                     <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold mb-2">
+                  <h3 className="text-lg sm:text-xl font-semibold mb-2">
                     Prescription Management
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300">
+                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                     Write, update and manage prescriptions digitally with easy
                     tracking.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3 sm:gap-4">
                 <div className="flex-shrink-0 bg-green-100 dark:bg-green-900/30 p-3 rounded-full">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -265,7 +265,7 @@ export default function Home() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="w-6 h-6 text-green-600"
+                    className="w-5 h-5 sm:w-6 sm:h-6 text-green-600"
                   >
                     <circle cx="12" cy="12" r="10"></circle>
                     <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
@@ -273,16 +273,16 @@ export default function Home() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold mb-2">
+                  <h3 className="text-lg sm:text-xl font-semibold mb-2">
                     Virtual Consultations
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300">
+                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                     Conduct secure video consultations and follow-ups remotely.
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3 sm:gap-4">
                 <div className="flex-shrink-0 bg-red-100 dark:bg-red-900/30 p-3 rounded-full">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -294,16 +294,16 @@ export default function Home() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="w-6 h-6 text-red-600"
+                    className="w-5 h-5 sm:w-6 sm:h-6 text-red-600"
                   >
                     <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold mb-2">
+                  <h3 className="text-lg sm:text-xl font-semibold mb-2">
                     Treatment Analytics
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300">
+                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                     Monitor treatment efficacy and patient adherence with
                     detailed analytics.
                   </p>
@@ -575,6 +575,37 @@ export default function Home() {
           opacity: 0;
           animation: fadeIn 0.8s ease-in forwards;
           animation-delay: 0.6s;
+        }
+        
+        /* Fix for scrollbar-induced layout shifts */
+        html {
+          overflow-y: scroll;
+          scrollbar-width: thin; /* For Firefox */
+          scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+        }
+        
+        body {
+          width: 100%;
+          overflow-x: hidden;
+          margin-right: 0 !important;
+        }
+        
+        /* Custom scrollbar styling for webkit browsers */
+        ::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background-color: rgba(155, 155, 155, 0.5);
+          border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(155, 155, 155, 0.7);
         }
       `}</style>
     </>

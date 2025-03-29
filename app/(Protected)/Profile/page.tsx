@@ -9,15 +9,18 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { SessionContext } from "@/lib/supabase/usercontext";
-import { ImageIcon, Loader2 } from "lucide-react";
+import { ImageIcon, Loader2, Edit } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function Profile() {
   const { sessionData, setSessionData } = useContext(SessionContext);
+  const router = useRouter();
   const isLoading = false;
   const symptoms = sessionData.profile?.symptoms;
   const [isEditing, setIsEditing] = useState(false);
   const [loadingMedicineId, setLoadingMedicineId] = useState<string | null>(null);
   const [loadingDetailsId, setLoadingDetailsId] = useState<string | null>(null);
+  const [isEditProfileLoading, setIsEditProfileLoading] = useState(false);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -57,6 +60,12 @@ export default function Profile() {
     }
   };
 
+  // Handle navigation to edit profile with loading state
+  const handleEditProfileClick = () => {
+    setIsEditProfileLoading(true);
+    router.push("/SetUp");
+  };
+
   return (
     <Layout>
       <motion.div
@@ -85,6 +94,32 @@ export default function Profile() {
             <motion.h1 className="text-2xl sm:text-3xl font-bold mt-2 text-center bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">
               {sessionData.profile?.first_name + " " + sessionData.profile?.last_name}
             </motion.h1>
+
+            {/* Edit Profile Button */}
+            <motion.div
+              variants={itemVariants}
+              className="mt-3"
+              whileHover={{ scale: 1.05 }}
+            >
+              <Button
+                variant="outline"
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-700 rounded-full shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                onClick={handleEditProfileClick}
+                disabled={isEditProfileLoading}
+              >
+                {isEditProfileLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <Edit className="h-4 w-4" />
+                    Edit Profile
+                  </>
+                )}
+              </Button>
+            </motion.div>
           </motion.div>
 
           {/* Main Content */}
