@@ -52,63 +52,51 @@ export default function DoctorSetup() {
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
-        // Redirect to sign in if not authenticated
-        if (!sessionLoading && !sessionData?.session) {
-            router.push('/doctor/docsignup');
-            return;
-        }
+        let mounted = true;
 
-        // Check if the doctor already has a profile
-        const checkDoctorProfile = async () => {
-            if (sessionData?.session?.user?.id) {
-                try {
-                    // First, check if the table exists by making a safe query
-                    const { count, error: tableError } = await supabase
+        const initializeSetup = async () => {
+            // Wait for session loading to complete
+            if (sessionLoading) return;
+
+            // If no session, redirect to signup
+            if (!sessionData?.session) {
+                router.push('/doctor/docsignup');
+                return;
+            }
+
+            try {
+                // Check if the doctor already has a profile
+                if (sessionData.session.user.id) {
+                    const { data, error } = await supabase
                         .from('doc_profiles')
-                        .select('*', { count: 'exact', head: true });
+                        .select('*')
+                        .eq('user_id', sessionData.session.user.id)
+                        .maybeSingle();
 
-                    // If there's an error with the table query, it might not exist yet
-                    if (tableError) {
-                        console.log('Doctor profiles table might not exist yet:', tableError.message);
-                        return; // Continue with the setup form
+                    if (!mounted) return;
+
+                    // Only redirect if we successfully found a profile
+                    if (data && !error) {
+                        console.log('Doctor profile found, redirecting to verify page');
+                        router.push('/doctor/verify');
+                        return;
                     }
 
-                    // If we successfully queried the table, now check for the user's profile
-                    try {
-                        const { data, error: profileError } = await supabase
-                            .from('doc_profiles')
-                            .select('*')
-                            .eq('user_id', sessionData.session.user.id)
-                            .maybeSingle();
-
-                        // Safely handle the case when no profile is found
-                        if (profileError) {
-                            // Only log as a warning if it's not just "no rows found"
-                            if (!profileError.message.includes('No rows found')) {
-                                console.warn('Could not check for existing doctor profile:', profileError.message);
-                            }
-                            return;
-                        }
-
-                        // If doctor profile exists, redirect to verify page
-                        if (data) {
-                            console.log('Doctor profile found, redirecting to verify page');
-                            router.push('/doctor/verify');
-                        }
-                    } catch (profileErr: any) {
-                        console.log('Error in specific profile check:', profileErr?.message || 'Unknown error');
-                        // Continue with setup form
+                    // If there's no profile (PGRST116) or other errors, stay on setup page
+                    if (error && error.code !== 'PGRST116') {
+                        console.warn('Error checking profile:', error.message);
                     }
-                } catch (err: any) {
-                    console.log('General error in profile checking:', err?.message || 'Unknown error');
-                    // Continue with setup form
                 }
+            } catch (err) {
+                console.error('Error in profile check:', err);
             }
         };
 
-        if (sessionData?.session) {
-            checkDoctorProfile();
-        }
+        initializeSetup();
+
+        return () => {
+            mounted = false;
+        };
     }, [sessionData, sessionLoading, router]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

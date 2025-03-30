@@ -19,11 +19,38 @@ export default function DoctorSignUp() {
 
     // Use useEffect to handle redirection instead of doing it during render
     useEffect(() => {
-        // If already logged in, redirect to the setup page
-        if (sessionData?.session) {
-            router.push('/doctor/setup');
-        }
-    }, [sessionData, router]);
+        const checkSession = async () => {
+            // Wait for any loading states
+            if (isLoading) return;
+
+            // If already logged in, check if they have a profile
+            if (sessionData?.session?.user?.id) {
+                try {
+                    const { data, error } = await supabase
+                        .from('doc_profiles')
+                        .select('*')
+                        .eq('user_id', sessionData.session.user.id)
+                        .maybeSingle();
+
+                    // If they have a profile, send them to verify
+                    if (data && !error) {
+                        router.push('/doctor/verify');
+                        return;
+                    }
+
+                    // If no profile found, send them to setup
+                    if (error && error.code === 'PGRST116') {
+                        router.push('/doctor/setup');
+                        return;
+                    }
+                } catch (err) {
+                    console.error('Error checking profile:', err);
+                }
+            }
+        };
+
+        checkSession();
+    }, [sessionData, isLoading, router]);
 
     const handleGoogleLogin = async () => {
         setIsLoading(true);

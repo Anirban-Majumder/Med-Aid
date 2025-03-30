@@ -16,7 +16,11 @@ import {
   Bell,
   CheckCircle,
   XCircle,
-  Loader2
+  Loader2,
+  LogOut,
+  Users,
+  Activity,
+  CalendarClock
 } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
 
@@ -53,6 +57,7 @@ export default function DoctorDashboard() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAvailable, setIsAvailable] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Dummy data for development - replace with real data in production
   const dummyAppointments: Appointment[] = [
@@ -114,9 +119,23 @@ export default function DoctorDashboard() {
     }
   };
 
+  // Add logout handler
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      router.push('/doctor/docsignup');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   useEffect(() => {
     if (!sessionLoading && !sessionData?.session) {
-      router.push('/SignIn');
+      router.push('/doctor/docsignup');
       return;
     }
 
@@ -189,6 +208,15 @@ export default function DoctorDashboard() {
   // Get upcoming appointments
   const upcomingAppointments = appointments.filter(app => app.status === 'upcoming');
 
+  // Get statistics
+  const getStatistics = () => {
+    return {
+      totalPatients: 150,
+      appointmentsToday: 5,
+      upcomingTotal: upcomingAppointments.length
+    };
+  };
+
   if (isLoading || sessionLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-zinc-100 via-blue-50 to-zinc-200 dark:from-zinc-900 dark:via-blue-900/10 dark:to-zinc-900">
@@ -200,81 +228,207 @@ export default function DoctorDashboard() {
     );
   }
 
+  const stats = getStatistics();
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-100 via-blue-50 to-zinc-200 dark:from-zinc-900 dark:via-blue-900/10 dark:to-zinc-900 p-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Profile Card */}
-        <Card className="p-6 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-zinc-200/50 dark:border-zinc-700/50 shadow-md mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-100 via-blue-50 to-zinc-200 dark:from-zinc-900 dark:via-blue-900/10 dark:to-zinc-900 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header Card */}
+        <Card className="p-6 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-zinc-200/50 dark:border-zinc-700/50 shadow-xl rounded-xl">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center mb-4 md:mb-0">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center text-white text-xl font-bold mr-4">
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.3 }}
+                className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center text-white text-xl font-bold mr-4 shadow-lg"
+              >
                 {doctorProfile?.first_name.charAt(0)}{doctorProfile?.last_name.charAt(0)}
-              </div>
+              </motion.div>
               <div>
-                <h1 className="text-2xl font-bold">Dr. {doctorProfile?.first_name} {doctorProfile?.last_name}</h1>
-                <p className="text-zinc-600 dark:text-zinc-400">{doctorProfile?.specializations}</p>
+                <motion.h1
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                  className="text-2xl font-bold bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-300 bg-clip-text text-transparent"
+                >
+                  Dr. {doctorProfile?.first_name} {doctorProfile?.last_name}
+                </motion.h1>
+                <motion.p
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.2 }}
+                  className="text-zinc-600 dark:text-zinc-400"
+                >
+                  {doctorProfile?.specializations}
+                </motion.p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" asChild>
+            <motion.div
+              initial={{ y: -10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.3, delay: 0.3 }}
+              className="flex items-center space-x-3"
+            >
+              <Button variant="outline" asChild className="bg-white dark:bg-zinc-800">
                 <Link href="/doctor/medverify">
                   <FileText className="w-4 h-4 mr-2" />
                   Med Verify
                 </Link>
               </Button>
-              <Button variant="outline" asChild>
+              <Button variant="outline" asChild className="bg-white dark:bg-zinc-800">
                 <Link href="/doctor/profile">
                   <User className="w-4 h-4 mr-2" />
                   Profile
                 </Link>
               </Button>
-            </div>
-          </div>
-
-          {/* Availability Toggle */}
-          <div className="mt-6 p-4 bg-zinc-50 dark:bg-zinc-700/30 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                {isAvailable ? (
-                  <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="bg-white dark:bg-zinc-800 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+              >
+                {isLoggingOut ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
-                  <XCircle className="w-5 h-5 text-red-500 mr-2" />
+                  <LogOut className="w-4 h-4 mr-2" />
                 )}
-                <span className="font-medium">
-                  {isAvailable ? 'Available for Appointments' : 'Not Available'}
-                </span>
-              </div>
-              <Switch
-                checked={isAvailable}
-                onCheckedChange={handleAvailabilityChange}
-              />
-            </div>
+                {isLoggingOut ? 'Logging out...' : 'Logout'}
+              </Button>
+            </motion.div>
           </div>
-
-          {/* Upcoming Appointments (only shown when available) */}
-          {isAvailable && upcomingAppointments.length > 0 && (
-            <div className="mt-6">
-              <h2 className="text-lg font-semibold mb-4">Upcoming Appointments</h2>
-              <div className="space-y-4">
-                {upcomingAppointments.map((appointment) => (
-                  <div
-                    key={appointment.id}
-                    className="p-4 bg-zinc-50 dark:bg-zinc-700/30 rounded-lg flex justify-between items-center"
-                  >
-                    <div>
-                      <h3 className="font-medium">{appointment.patient_name}</h3>
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400">{appointment.reason}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">{formatDate(appointment.date)}</p>
-                      <p className="text-sm text-zinc-600 dark:text-zinc-400">{appointment.time}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </Card>
+
+        {/* Statistics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.4 }}
+          >
+            <Card className="p-6 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-zinc-200/50 dark:border-zinc-700/50 shadow-lg rounded-xl hover:shadow-xl transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Total Patients</p>
+                  <h3 className="text-2xl font-bold mt-1">{stats.totalPatients}</h3>
+                </div>
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                  <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.5 }}
+          >
+            <Card className="p-6 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-zinc-200/50 dark:border-zinc-700/50 shadow-lg rounded-xl hover:shadow-xl transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Today's Appointments</p>
+                  <h3 className="text-2xl font-bold mt-1">{stats.appointmentsToday}</h3>
+                </div>
+                <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                  <Activity className="w-6 h-6 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.6 }}
+          >
+            <Card className="p-6 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-zinc-200/50 dark:border-zinc-700/50 shadow-lg rounded-xl hover:shadow-xl transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Upcoming Total</p>
+                  <h3 className="text-2xl font-bold mt-1">{stats.upcomingTotal}</h3>
+                </div>
+                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                  <CalendarClock className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Availability Card */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.7 }}
+            className="lg:col-span-1"
+          >
+            <Card className="p-6 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-zinc-200/50 dark:border-zinc-700/50 shadow-lg rounded-xl">
+              <h2 className="text-lg font-semibold mb-4">Availability Status</h2>
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-700/30 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    {isAvailable ? (
+                      <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+                    ) : (
+                      <XCircle className="w-5 h-5 text-red-500 mr-2" />
+                    )}
+                    <span className="font-medium">
+                      {isAvailable ? 'Available for Appointments' : 'Not Available'}
+                    </span>
+                  </div>
+                  <Switch
+                    checked={isAvailable}
+                    onCheckedChange={handleAvailabilityChange}
+                  />
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Appointments Card */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.8 }}
+            className="lg:col-span-2"
+          >
+            <Card className="p-6 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-zinc-200/50 dark:border-zinc-700/50 shadow-lg rounded-xl">
+              <h2 className="text-lg font-semibold mb-4">Upcoming Appointments</h2>
+              {upcomingAppointments.length > 0 ? (
+                <div className="space-y-4">
+                  {upcomingAppointments.map((appointment) => (
+                    <div
+                      key={appointment.id}
+                      className="p-4 bg-zinc-50 dark:bg-zinc-700/30 rounded-lg flex justify-between items-center hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                          <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">{appointment.patient_name}</h3>
+                          <p className="text-sm text-zinc-600 dark:text-zinc-400">{appointment.reason}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">{formatDate(appointment.date)}</p>
+                        <p className="text-sm text-zinc-600 dark:text-zinc-400">{appointment.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
+                  <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No upcoming appointments</p>
+                </div>
+              )}
+            </Card>
+          </motion.div>
+        </div>
       </div>
     </div>
   );
