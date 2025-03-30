@@ -33,16 +33,16 @@ body {
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
-    --popover: #e8f5ff;
-    --copilot-kit-primary-color: #06b6d4;
+    --popover: #ceaaf1;
+    --copilot-kit-primary-color: #22d3ee;
     --copilot-kit-contrast-color: rgb(255 255 255);
     --copilot-kit-secondary-color: rgb(243 244 246);
     --copilot-kit-secondary-contrast-color: rgb(0 0 0);
     --copilot-kit-background-color: rgb(255 255 255);
     --copilot-kit-muted-color: rgb(106 106 106);
-    --copilot-kit-separator-color: rgba(6, 182, 212, 0.1);
-    --copilot-kit-scrollbar-color: rgba(6, 182, 212, 0.2);
-    --copilot-kit-response-button-color: #06b6d4;
+    --copilot-kit-separator-color: rgba(0, 0, 0, 0.08);
+    --copilot-kit-scrollbar-color: rgba(0, 0, 0, 0.2);
+    --copilot-kit-response-button-color: #333;
     --copilot-kit-response-button-background-color: #fff;
   }
 
@@ -51,7 +51,7 @@ body {
     --foreground: 0 0% 98%;
     --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
-    --popover: #164e63;
+    --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
     --primary: 0 0% 98%;
     --primary-foreground: 240 5.9% 10%;
@@ -71,16 +71,17 @@ body {
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+    --popover: #40364a;
     --copilot-kit-primary-color: #22d3ee;
     --copilot-kit-contrast-color: #ffffff;
-    --copilot-kit-secondary-color: #155e75;
+    --copilot-kit-secondary-color: #3f3f46;
     --copilot-kit-secondary-contrast-color: #ffffff;
-    --copilot-kit-background-color: rgb(19 78 74);
-    --copilot-kit-muted-color: rgb(148 163 184);
-    --copilot-kit-separator-color: #164e63;
-    --copilot-kit-scrollbar-color: rgba(34, 211, 238, 0.2);
+    --copilot-kit-background-color: rgb(39 39 42);
+    --copilot-kit-muted-color: rgb(106 106 106);
+    --copilot-kit-separator-color: #3f3f46;
+    --copilot-kit-scrollbar-color: rgba(221, 203, 203, 0.2);
     --copilot-kit-response-button-color: #ffffff;
-    --copilot-kit-response-button-background-color: #164e63;
+    --copilot-kit-response-button-background-color: rgb(39 39 42);
   }
 }
 
