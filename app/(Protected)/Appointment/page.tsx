@@ -80,6 +80,7 @@ export default function DoctorsPage() {
         .from('appointments')
         .insert({
           doctor_id: doctor.id,
+          patient_name: `${sessionData.profile?.first_name || ''} ${sessionData.profile?.last_name || ''}`.trim(),
           patient_id: sessionData.session.user.id,
           status: 'pending',
           created_at: new Date().toISOString(),

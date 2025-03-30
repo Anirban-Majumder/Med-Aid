@@ -207,14 +207,14 @@ export default function DoctorDashboard() {
               console.warn(`Could not fetch user details for patient ${apt.patient_id}:`, userError.message);
               return {
                 ...apt,
-                patient_name: 'Unknown Patient',
+                patient_name: apt.patient_name||'Unknown Patient',
                 patient_email: 'No email provided'
               };
             }
 
             return {
               ...apt,
-              patient_name: userData?.raw_user_meta_data?.full_name || userData?.email?.split('@')[0] || 'Unknown Patient',
+              patient_name: apt.patient_name || 'Unknown Patient',
               patient_email: userData?.email || 'No email provided'
             };
           }));
