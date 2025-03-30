@@ -25,7 +25,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 
 type DoctorProfile = {
-  id: string;
+  id: number;
   user_id: string;
   first_name: string;
   last_name: string;
@@ -40,13 +40,23 @@ type DoctorProfile = {
   created_at: string;
 };
 
-type Appointment = {
+type DatabaseAppointment = {
   id: string;
-  patient_name: string;
-  date: string;
-  time: string;
-  status: 'upcoming' | 'completed' | 'cancelled';
+  patient_id: string;
+  doctor_id: number;
+  status: 'pending' | 'approved' | 'completed' | 'cancelled';
+  appointment_date: string;
   reason: string;
+  created_at: string;
+  users: {
+    email: string;
+    'user_metadata->>full_name': string;
+  } | null;
+};
+
+type Appointment = Omit<DatabaseAppointment, 'users'> & {
+  patient_name: string;
+  patient_email: string;
 };
 
 export default function DoctorDashboard() {
@@ -58,26 +68,7 @@ export default function DoctorDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAvailable, setIsAvailable] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  // Dummy data for development - replace with real data in production
-  const dummyAppointments: Appointment[] = [
-    {
-      id: '1',
-      patient_name: 'Michael Johnson',
-      date: '2023-11-20',
-      time: '09:30',
-      status: 'upcoming',
-      reason: 'Annual check-up',
-    },
-    {
-      id: '2',
-      patient_name: 'Sarah Williams',
-      date: '2023-11-20',
-      time: '11:00',
-      status: 'upcoming',
-      reason: 'Follow-up consultation',
-    }
-  ];
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(true);
 
   const handleAvailabilityChange = async (newStatus: boolean) => {
     try {
@@ -119,7 +110,6 @@ export default function DoctorDashboard() {
     }
   };
 
-  // Add logout handler
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
@@ -146,7 +136,6 @@ export default function DoctorDashboard() {
           const userId = sessionData.session.user.id;
           console.log('Fetching doctor profile for user ID:', userId);
 
-          // Fetch doctor profile
           const { data, error } = await supabase
             .from('doc_profiles')
             .select('*')
@@ -156,7 +145,6 @@ export default function DoctorDashboard() {
           if (error) {
             console.error('Error fetching doctor profile:', error.message);
 
-            // If no profile found, doctor needs to complete setup
             if (error.code === 'PGRST116') {
               console.log('No doctor profile found, redirecting to setup page');
               router.push('/doctor/setup');
@@ -168,7 +156,6 @@ export default function DoctorDashboard() {
 
           console.log('Doctor profile found:', data);
 
-          // If doctor is not verified, redirect to verification page
           if (!data.is_verified) {
             console.log('Doctor is not verified, redirecting to verify page');
             router.push('/doctor/verify');
@@ -177,10 +164,6 @@ export default function DoctorDashboard() {
 
           setDoctorProfile(data as DoctorProfile);
           setIsAvailable(data.is_available || false);
-
-          // In a real app, fetch real appointments here
-          // For now, using dummy data
-          setAppointments(dummyAppointments);
 
         } catch (error) {
           console.error('Error fetching doctor data:', error);
@@ -195,7 +178,73 @@ export default function DoctorDashboard() {
     }
   }, [sessionData, sessionLoading, router]);
 
-  // Format date for display
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      if (!sessionData?.session?.user?.id || !doctorProfile?.id) return;
+
+      try {
+        setIsLoadingAppointments(true);
+        console.log('Fetching appointments for doctor ID:', doctorProfile.id);
+
+        // Fetch appointments with user metadata
+        const { data: appointmentsData, error: appointmentsError } = await supabase
+          .from('appointments')
+          .select(`
+            *,
+            users (
+              email,
+              raw_user_meta_data
+            )
+          `)
+          .eq('doctor_id', doctorProfile.id)
+          .order('created_at', { ascending: false });
+
+        if (appointmentsError) {
+          console.error('Error fetching appointments:', appointmentsError.message);
+          throw appointmentsError;
+        }
+
+        console.log('Raw appointments data:', appointmentsData);
+
+        if (!appointmentsData || appointmentsData.length === 0) {
+          console.log('No appointments found');
+          setAppointments([]);
+          return;
+        }
+
+        // Format appointments
+        const formattedAppointments = appointmentsData.map(apt => ({
+          id: apt.id,
+          patient_id: apt.patient_id,
+          doctor_id: apt.doctor_id,
+          status: apt.status,
+          appointment_date: apt.appointment_date,
+          reason: apt.reason,
+          created_at: apt.created_at,
+          patient_name: apt.users?.raw_user_meta_data?.full_name || apt.users?.email?.split('@')[0] || 'Unknown Patient',
+          patient_email: apt.users?.email || 'No email provided'
+        }));
+
+        console.log('Formatted appointments:', formattedAppointments);
+        setAppointments(formattedAppointments);
+
+      } catch (error: any) {
+        console.error('Error in appointments fetch:', {
+          message: error?.message || 'Unknown error',
+          details: error?.details || '',
+          hint: error?.hint || ''
+        });
+        setAppointments([]);
+      } finally {
+        setIsLoadingAppointments(false);
+      }
+    };
+
+    if (doctorProfile?.id) {
+      fetchAppointments();
+    }
+  }, [sessionData?.session?.user?.id, doctorProfile?.id]);
+
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = {
       weekday: 'short',
@@ -205,15 +254,12 @@ export default function DoctorDashboard() {
     return new Date(dateString).toLocaleDateString('en-US', options);
   };
 
-  // Get upcoming appointments
-  const upcomingAppointments = appointments.filter(app => app.status === 'upcoming');
-
-  // Get statistics
   const getStatistics = () => {
+    const today = new Date().toISOString().split('T')[0];
     return {
-      totalPatients: 150,
-      appointmentsToday: 5,
-      upcomingTotal: upcomingAppointments.length
+      totalPatients: new Set(appointments.map(apt => apt.patient_id)).size,
+      appointmentsToday: appointments.filter(apt => apt.appointment_date.startsWith(today)).length,
+      upcomingTotal: appointments.filter(apt => apt.status === 'pending' || apt.status === 'approved').length
     };
   };
 
@@ -233,7 +279,6 @@ export default function DoctorDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-100 via-blue-50 to-zinc-200 dark:from-zinc-900 dark:via-blue-900/10 dark:to-zinc-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header Card */}
         <Card className="p-6 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-zinc-200/50 dark:border-zinc-700/50 shadow-xl rounded-xl">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center mb-4 md:mb-0">
@@ -299,7 +344,6 @@ export default function DoctorDashboard() {
           </div>
         </Card>
 
-        {/* Statistics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <motion.div
             initial={{ y: 20, opacity: 0 }}
@@ -356,9 +400,7 @@ export default function DoctorDashboard() {
           </motion.div>
         </div>
 
-        {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Availability Card */}
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -388,7 +430,6 @@ export default function DoctorDashboard() {
             </Card>
           </motion.div>
 
-          {/* Appointments Card */}
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -396,10 +437,14 @@ export default function DoctorDashboard() {
             className="lg:col-span-2"
           >
             <Card className="p-6 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-zinc-200/50 dark:border-zinc-700/50 shadow-lg rounded-xl">
-              <h2 className="text-lg font-semibold mb-4">Upcoming Appointments</h2>
-              {upcomingAppointments.length > 0 ? (
+              <h2 className="text-lg font-semibold mb-4">Recent Appointments</h2>
+              {isLoadingAppointments ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
+                </div>
+              ) : appointments.length > 0 ? (
                 <div className="space-y-4">
-                  {upcomingAppointments.map((appointment) => (
+                  {appointments.slice(0, 5).map((appointment) => (
                     <div
                       key={appointment.id}
                       className="p-4 bg-zinc-50 dark:bg-zinc-700/30 rounded-lg flex justify-between items-center hover:bg-zinc-100 dark:hover:bg-zinc-700/50 transition-colors"
@@ -410,12 +455,22 @@ export default function DoctorDashboard() {
                         </div>
                         <div>
                           <h3 className="font-medium">{appointment.patient_name}</h3>
-                          <p className="text-sm text-zinc-600 dark:text-zinc-400">{appointment.reason}</p>
+                          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                            {appointment.reason || 'No reason provided'}
+                          </p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">{formatDate(appointment.date)}</p>
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400">{appointment.time}</p>
+                        <p className="font-medium">{formatDate(appointment.appointment_date)}</p>
+                        <p className="text-sm">
+                          <span className={`inline-block px-2 py-1 rounded-full text-xs ${appointment.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200' :
+                            appointment.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200' :
+                              appointment.status === 'completed' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200' :
+                                'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200'
+                            }`}>
+                            {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                          </span>
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -423,7 +478,7 @@ export default function DoctorDashboard() {
               ) : (
                 <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
                   <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No upcoming appointments</p>
+                  <p>No appointments yet</p>
                 </div>
               )}
             </Card>
