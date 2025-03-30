@@ -48,13 +48,9 @@ type DatabaseAppointment = {
   appointment_date: string;
   reason: string;
   created_at: string;
-  users: {
-    email: string;
-    'user_metadata->>full_name': string;
-  } | null;
 };
 
-type Appointment = Omit<DatabaseAppointment, 'users'> & {
+type Appointment = DatabaseAppointment & {
   patient_name: string;
   patient_email: string;
 };
@@ -105,7 +101,6 @@ export default function DoctorDashboard() {
         message: errorMessage,
         error: error
       });
-      // You might want to show a toast or alert here to inform the user
       setIsAvailable(prev => prev); // Revert the switch to previous state
     }
   };
@@ -186,16 +181,10 @@ export default function DoctorDashboard() {
         setIsLoadingAppointments(true);
         console.log('Fetching appointments for doctor ID:', doctorProfile.id);
 
-        // Fetch appointments with user metadata
+        // First fetch appointments
         const { data: appointmentsData, error: appointmentsError } = await supabase
           .from('appointments')
-          .select(`
-            *,
-            users (
-              email,
-              raw_user_meta_data
-            )
-          `)
+          .select('*')
           .eq('doctor_id', doctorProfile.id)
           .order('created_at', { ascending: false });
 
@@ -204,29 +193,37 @@ export default function DoctorDashboard() {
           throw appointmentsError;
         }
 
-        console.log('Raw appointments data:', appointmentsData);
+        // If we have appointments, fetch user details for each patient
+        if (appointmentsData && appointmentsData.length > 0) {
+          const formattedAppointments = await Promise.all(appointmentsData.map(async (apt) => {
+            // Fetch user details for each patient_id
+            const { data: userData, error: userError } = await supabase
+              .from('users')
+              .select('email, raw_user_meta_data')
+              .eq('id', apt.patient_id)
+              .single();
 
-        if (!appointmentsData || appointmentsData.length === 0) {
-          console.log('No appointments found');
+            if (userError) {
+              console.warn(`Could not fetch user details for patient ${apt.patient_id}:`, userError.message);
+              return {
+                ...apt,
+                patient_name: 'Unknown Patient',
+                patient_email: 'No email provided'
+              };
+            }
+
+            return {
+              ...apt,
+              patient_name: userData?.raw_user_meta_data?.full_name || userData?.email?.split('@')[0] || 'Unknown Patient',
+              patient_email: userData?.email || 'No email provided'
+            };
+          }));
+
+          console.log('Formatted appointments:', formattedAppointments);
+          setAppointments(formattedAppointments);
+        } else {
           setAppointments([]);
-          return;
         }
-
-        // Format appointments
-        const formattedAppointments = appointmentsData.map(apt => ({
-          id: apt.id,
-          patient_id: apt.patient_id,
-          doctor_id: apt.doctor_id,
-          status: apt.status,
-          appointment_date: apt.appointment_date,
-          reason: apt.reason,
-          created_at: apt.created_at,
-          patient_name: apt.users?.raw_user_meta_data?.full_name || apt.users?.email?.split('@')[0] || 'Unknown Patient',
-          patient_email: apt.users?.email || 'No email provided'
-        }));
-
-        console.log('Formatted appointments:', formattedAppointments);
-        setAppointments(formattedAppointments);
 
       } catch (error: any) {
         console.error('Error in appointments fetch:', {
