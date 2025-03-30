@@ -452,7 +452,7 @@ export default function Profile() {
                                       setTimeout(() => setLoadingDetailsId(null), 500);
                                     }}
                                   >
-                                    <Link href={`/MedDetails?id=${medicine.m_id}`}>View Details</Link>
+                                    <Link href={`/MedDetails?name=${medicine.name}`}>View Details</Link>
                                   </Button>
                                 )}
                               </div>

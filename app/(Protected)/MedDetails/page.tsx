@@ -14,6 +14,7 @@ function MedicineDetailsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const id = useMemo(() => searchParams.get("id"), [searchParams]);
+  const name = useMemo(() => searchParams.get("name"), [searchParams]);
 
   useEffect(() => {
     if (id && !medicineVariant) {
@@ -26,6 +27,18 @@ function MedicineDetailsContent() {
         .catch((err) => console.error("Error fetching medicine details:", err));
     }
   }, [id, medicineVariant]);
+
+  useEffect(() => {
+    if (name && !medicineVariant) {
+      fetch(`/api/getMedDetails?name=${name}`)
+        .then((res) => res.json())
+        .then((data: any) => {
+          setMedicineVariant(data.variant);
+          setSelectedImage(data.variant.images[0] || null);
+        })
+        .catch((err) => console.error("Error fetching medicine details:", err));
+    }
+  }, [name, medicineVariant]);
 
   if (!medicineVariant) {
     return (
