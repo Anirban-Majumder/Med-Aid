@@ -87,7 +87,7 @@ export default function DoctorSignUp() {
             >
                 <div className="text-center mb-8">
                     <Link href="/" className="inline-block">
-                        <Image src="/icon.svg" alt="PharmaAI" width={50} height={50} className="mx-auto mb-4" />
+                        <Image src="/icon.svg" alt="Med-Aid" width={50} height={50} className="mx-auto mb-4" />
                     </Link>
                     <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
                         Doctor Registration

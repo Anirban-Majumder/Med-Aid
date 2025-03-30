@@ -64,7 +64,7 @@ export default function AuthPage() {
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.5 }}
           >
-            Welcome to PharmaAI
+            Welcome to Med-Aid
           </motion.h1>
           <motion.p
             className="text-lg text-zinc-600 dark:text-zinc-400"

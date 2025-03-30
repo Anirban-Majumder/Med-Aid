@@ -59,7 +59,7 @@ export default function DoctorSetup() {
             if (sessionLoading) return;
 
             // If no session, redirect to signup
-            if (!sessionData?.session) {
+            if (!sessionData?.session?.user?.id) {
                 router.push('/doctor/docsignup');
                 return;
             }
