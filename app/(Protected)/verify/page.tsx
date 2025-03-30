@@ -10,6 +10,18 @@ import { Card } from '@/components/ui/card';
 import Link from 'next/link';
 import { checkAdminStatus } from "@/lib/supabase/admin"; // Import the admin checking function
 import { Layout } from "@/components/layout";
+import { useToast } from "@/hooks/use-toast";
+import { Toaster } from "@/components/ui/toaster";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type DoctorApplication = {
     id: string;
@@ -26,11 +38,12 @@ type DoctorApplication = {
     license_url: string;
     degree_url: string;
     is_verified: boolean;
-    is_approved: boolean;
+    rejection_reason?: string;
     created_at: string;
 };
 
 export default function AdminVerifyPage() {
+    console.log("AdminVerifyPage rendering");
     const router = useRouter();
     const supabase = createClient();
     const { sessionData, isLoading: sessionLoading } = useContext(SessionContext);
@@ -40,6 +53,28 @@ export default function AdminVerifyPage() {
     const [selectedDoctor, setSelectedDoctor] = useState<DoctorApplication | null>(null);
     const [viewingDocs, setViewingDocs] = useState<{ type: 'license' | 'degree', url: string } | null>(null);
     const [stateLoaded, setStateLoaded] = useState(false);
+    const [processingAction, setProcessingAction] = useState(false);
+    const { toast } = useToast();
+
+    // Debug state for tracking component state
+    useEffect(() => {
+        console.log("Component state:", {
+            isAdmin,
+            isLoading,
+            sessionLoading,
+            applicationsCount: applications.length,
+            selectedDoctor: selectedDoctor?.id,
+            processingAction
+        });
+    }, [isAdmin, isLoading, sessionLoading, applications, selectedDoctor, processingAction]);
+
+    // Cleanup function when component unmounts
+    useEffect(() => {
+        return () => {
+            console.log("AdminVerifyPage component unmounting - cleaning up");
+            // Any cleanup needed goes here
+        };
+    }, []);
 
     // Load state from sessionStorage on initial mount
     useEffect(() => {
@@ -163,14 +198,21 @@ export default function AdminVerifyPage() {
     const fetchPendingApplications = async () => {
         setIsLoading(true);
         try {
+            // Fetch applications that need review (not verified yet)
+            console.log('Fetching pending doctor applications...');
             const { data, error } = await supabase
                 .from('doc_profiles')
                 .select('*')
-                .eq('is_verified', false)
+                .eq('is_verified', false)  // Only fetch non-verified applications
                 .order('created_at', { ascending: false });
 
             if (error) {
                 console.error('Database error fetching applications:', error.message);
+                toast({
+                    variant: "destructive",
+                    title: "Error fetching applications",
+                    description: error.message,
+                });
                 throw error;
             }
 
@@ -179,62 +221,134 @@ export default function AdminVerifyPage() {
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
             console.error('Error fetching doctor applications:', errorMessage);
+            toast({
+                variant: "destructive",
+                title: "Error loading applications",
+                description: "There was a problem loading doctor applications. Please try again.",
+            });
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleApproveDoctor = async (doctorId: string) => {
+        console.log(`Starting approval process for doctor ID: ${doctorId}`);
+
+        // Confirm with the user first
+        if (!window.confirm("Are you sure you want to approve this doctor? They will gain full access to doctor features.")) {
+            console.log("Doctor approval cancelled by user");
+            return;
+        }
+
         try {
-            // Update doctor profile to verified and approved
-            const { error } = await supabase
+            setProcessingAction(true);
+
+            // Update doctor profile to verified and approved - only using is_verified column
+            console.log(`Updating doctor profile for ID: ${doctorId} to approved status`);
+            const { data, error } = await supabase
                 .from('doc_profiles')
                 .update({
-                    is_verified: true,
-                    is_approved: true
+                    is_verified: true
+                    // Removed is_approved since it doesn't exist in the schema
                 })
-                .eq('id', doctorId);
+                .eq('id', doctorId)
+                .select();
 
             if (error) {
-                console.error('Database error approving doctor:', error.message);
+                console.error('Database error approving doctor:', error.message, error.code, error.details);
+                const errorDetails = error.details ? ` (${error.details})` : '';
+                toast({
+                    variant: "destructive",
+                    title: "Approval Failed",
+                    description: `Database error: ${error.message}${errorDetails}`,
+                });
                 throw error;
             }
+
+            console.log('Doctor profile updated successfully:', data);
 
             // Refresh the applications list
             await fetchPendingApplications();
             setSelectedDoctor(null);
 
-            // Send notification to the doctor (if you have a notification system)
-            console.log('Doctor approved and notification will be sent');
+            // Success notification
+            toast({
+                title: "Doctor Approved",
+                description: "The doctor has been successfully approved and can now use the platform.",
+            });
+
+            console.log('Doctor approval process completed successfully');
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
             console.error('Error approving doctor:', errorMessage);
-            alert('Error approving the doctor. Please try again.');
+            toast({
+                variant: "destructive",
+                title: "Approval Failed",
+                description: "There was a problem approving this doctor. Please try again.",
+            });
+        } finally {
+            setProcessingAction(false);
         }
     };
 
     const handleRejectDoctor = async (doctorId: string) => {
-        if (!confirm('Are you sure you want to reject this application?')) return;
+        console.log(`Starting rejection process for doctor ID: ${doctorId}`);
+
+        // Confirm with the user first
+        if (!window.confirm("Are you sure you want to reject this doctor application?")) {
+            console.log("Doctor rejection cancelled by user");
+            return;
+        }
 
         try {
-            // Delete the doctor profile or mark it as rejected
-            const { error } = await supabase
+            setProcessingAction(true);
+
+            // Mark the profile as rejected - only using is_verified and rejection_reason
+            console.log(`Updating doctor profile for ID: ${doctorId} to rejected status`);
+            const { data, error } = await supabase
                 .from('doc_profiles')
-                .delete()
-                .eq('id', doctorId);
+                .update({
+                    is_verified: false,
+                    // Removed is_approved since it doesn't exist in the schema
+                    rejection_reason: 'Documents or credentials did not meet our standards'
+                })
+                .eq('id', doctorId)
+                .select();
 
             if (error) {
-                console.error('Database error rejecting doctor:', error.message);
+                console.error('Database error rejecting doctor:', error.message, error.code, error.details);
+                const errorDetails = error.details ? ` (${error.details})` : '';
+                toast({
+                    variant: "destructive",
+                    title: "Rejection Failed",
+                    description: `Database error: ${error.message}${errorDetails}`,
+                });
                 throw error;
             }
+
+            console.log('Doctor profile updated as rejected:', data);
 
             // Refresh the applications list
             await fetchPendingApplications();
             setSelectedDoctor(null);
+
+            // Success notification
+            toast({
+                title: "Application Rejected",
+                description: "The doctor application has been rejected.",
+            });
+
+            console.log('Doctor rejection process completed successfully');
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
             console.error('Error rejecting doctor:', errorMessage);
-            alert('Error rejecting the application. Please try again.');
+            toast({
+                variant: "destructive",
+                title: "Rejection Failed",
+                description: "There was a problem rejecting this application. Please try again.",
+            });
+        } finally {
+            setProcessingAction(false);
         }
     };
 
@@ -408,18 +522,56 @@ export default function AdminVerifyPage() {
                                             <div className="flex gap-4">
                                                 <Button
                                                     className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                                                    onClick={() => handleApproveDoctor(selectedDoctor.id)}
+                                                    onClick={() => {
+                                                        // Direct approval without modal
+                                                        if (selectedDoctor && !processingAction) {
+                                                            console.log("Direct approval for doctor:", selectedDoctor.id);
+                                                            handleApproveDoctor(selectedDoctor.id);
+                                                        }
+                                                    }}
+                                                    disabled={processingAction}
                                                 >
-                                                    <Icon icon="ph:check-bold" className="w-5 h-5 mr-2" />
-                                                    Approve Doctor
+                                                    {processingAction ? (
+                                                        <div className="flex items-center justify-center">
+                                                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                            </svg>
+                                                            Processing...
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <Icon icon="ph:check-bold" className="w-5 h-5 mr-2" />
+                                                            Approve Doctor
+                                                        </>
+                                                    )}
                                                 </Button>
 
                                                 <Button
                                                     className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-                                                    onClick={() => handleRejectDoctor(selectedDoctor.id)}
+                                                    onClick={() => {
+                                                        // Direct rejection without modal
+                                                        if (selectedDoctor && !processingAction) {
+                                                            console.log("Direct rejection for doctor:", selectedDoctor.id);
+                                                            handleRejectDoctor(selectedDoctor.id);
+                                                        }
+                                                    }}
+                                                    disabled={processingAction}
                                                 >
-                                                    <Icon icon="ph:x-bold" className="w-5 h-5 mr-2" />
-                                                    Reject Application
+                                                    {processingAction ? (
+                                                        <div className="flex items-center justify-center">
+                                                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                            </svg>
+                                                            Processing...
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <Icon icon="ph:x-bold" className="w-5 h-5 mr-2" />
+                                                            Reject Application
+                                                        </>
+                                                    )}
                                                 </Button>
                                             </div>
                                         </div>
@@ -466,7 +618,7 @@ export default function AdminVerifyPage() {
                                                         <p className="text-sm text-zinc-500 dark:text-zinc-400">{application.specializations}</p>
                                                     </div>
                                                     <span className="px-3 py-1 text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-800/30 dark:text-yellow-200 rounded-full">
-                                                        Pending
+                                                        {application.is_verified ? "Verified" : "Pending"}
                                                     </span>
                                                 </div>
 
@@ -500,6 +652,7 @@ export default function AdminVerifyPage() {
                     )}
                 </div>
             </div>
+            <Toaster />
         </Layout>
     );
 }

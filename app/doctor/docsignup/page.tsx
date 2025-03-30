@@ -1,5 +1,5 @@
 "use client"
-import { useContext, useState } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { SessionContext } from "@/lib/supabase/usercontext";
@@ -16,6 +16,14 @@ export default function DoctorSignUp() {
     const { sessionData } = useContext(SessionContext);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Use useEffect to handle redirection instead of doing it during render
+    useEffect(() => {
+        // If already logged in, redirect to the setup page
+        if (sessionData?.session) {
+            router.push('/doctor/setup');
+        }
+    }, [sessionData, router]);
 
     const handleGoogleLogin = async () => {
         setIsLoading(true);
@@ -41,11 +49,6 @@ export default function DoctorSignUp() {
             setIsLoading(false);
         }
     };
-
-    // If already logged in, redirect to the setup page
-    if (sessionData?.session) {
-        router.push('/doctor/setup');
-    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-zinc-100 via-blue-50 to-zinc-200 dark:from-zinc-900 dark:via-blue-900/10 dark:to-zinc-900 flex flex-col items-center justify-center p-4">

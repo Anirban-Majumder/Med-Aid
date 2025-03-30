@@ -28,7 +28,6 @@ type DoctorApplication = {
     license_url: string;
     degree_url: string;
     is_verified: boolean;
-    is_approved: boolean;
     rejection_reason?: string; // Added
     created_at: string;
 };
@@ -162,31 +161,77 @@ export default function DoctorVerifyPage() {
 
     const fetchDoctorProfile = async (userId: string) => {
         try {
+            console.log('Fetching doctor profile for user ID:', userId);
+
+            // First, check if the doc_profiles table exists and has entries
+            const { count, error: countError } = await supabase
+                .from('doc_profiles')
+                .select('*', { count: 'exact', head: true });
+
+            if (countError) {
+                console.error('Error checking doc_profiles table:', countError.message);
+            } else {
+                console.log('Total profiles in doc_profiles table:', count);
+            }
+
+            // Debug: List all profiles to see if user's profile is among them
+            const { data: allProfiles, error: allProfilesError } = await supabase
+                .from('doc_profiles')
+                .select('user_id, first_name, last_name')
+                .limit(10);
+
+            if (allProfilesError) {
+                console.error('Error fetching sample profiles:', allProfilesError.message);
+            } else {
+                console.log('Sample profiles in database:', allProfiles);
+
+                // Check if the user's profile is in the sample set
+                const foundProfile = allProfiles?.find(profile => profile.user_id === userId);
+                if (foundProfile) {
+                    console.log('User profile found in sample data:', foundProfile);
+                } else {
+                    console.log('User profile not found in sample data. Continuing with specific query...');
+                }
+            }
+
+            // Now try to fetch the specific doctor profile
+            console.log('Executing query: .from("doc_profiles").select("*").eq("user_id", "' + userId + '").single()');
             const { data, error } = await supabase
-                .from('doctor_profiles')
+                .from('doc_profiles')
                 .select('*')
                 .eq('user_id', userId)
                 .single();
 
             if (error) {
-                console.error('Error fetching doctor profile:', error);
+                console.error('Error fetching doctor profile:', error.message, 'Code:', error.code);
+
                 // If no profile, redirect to setup
                 if (error.code === 'PGRST116') {
+                    console.log('No profile found, redirecting to setup page');
                     router.push('/doctor/setup');
                 }
                 return;
             }
 
+            console.log('Successfully found doctor profile:', data);
             setDoctorProfile(data as DoctorApplication);
+
+            // If the doctor is verified, automatically redirect to dashboard
+            if (data.is_verified) {
+                console.log('Doctor is verified. Redirecting to dashboard...');
+                router.push('/doctor/dashboard');
+                return;
+            }
         } catch (error) {
-            console.error('Error in fetchDoctorProfile:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            console.error('Error in fetchDoctorProfile:', errorMessage);
         }
     };
 
     const fetchPendingApplications = async () => {
         try {
             const { data, error } = await supabase
-                .from('doctor_profiles')
+                .from('doc_profiles')
                 .select('*')
                 .eq('is_verified', false)
                 .order('created_at', { ascending: false });
@@ -204,12 +249,12 @@ export default function DoctorVerifyPage() {
     const handleApproveDoctor = async (doctorId: string) => {
         try {
             setIsLoading(true);
-            // Update doctor profile to verified and approved
+            // Update doctor profile to verified 
             const { error } = await supabase
-                .from('doctor_profiles')
+                .from('doc_profiles')
                 .update({
-                    is_verified: true,
-                    is_approved: true
+                    is_verified: true
+                    // Removed is_approved since it doesn't exist in the schema
                 })
                 .eq('id', doctorId);
 
@@ -248,12 +293,12 @@ export default function DoctorVerifyPage() {
 
         try {
             setIsLoading(true);
-            // Mark the doctor profile as rejected
+            // Mark the doctor profile as rejected but don't use is_approved
             const { error } = await supabase
-                .from('doctor_profiles')
+                .from('doc_profiles')
                 .update({
                     is_verified: false,
-                    is_approved: false,
+                    // Removed is_approved since it doesn't exist in the schema
                     rejection_reason: 'Documents or credentials did not meet our standards'
                 })
                 .eq('id', doctorId);
@@ -326,18 +371,18 @@ export default function DoctorVerifyPage() {
                     <Card className="p-8 bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm shadow-xl rounded-xl border border-zinc-200/50 dark:border-zinc-700/50">
                         {doctorProfile ? (
                             <>
-                                {doctorProfile.is_verified && doctorProfile.is_approved ? (
+                                {doctorProfile.is_verified ? (
                                     <div className="text-center">
                                         <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
                                         <h2 className="text-2xl font-bold mb-2">Verified!</h2>
                                         <p className="text-zinc-600 dark:text-zinc-400 mb-6">
-                                            Your doctor account has been verified and approved. You can now access all features.
+                                            Your doctor account has been verified. You can now access all features.
                                         </p>
                                         <Button asChild className="bg-blue-600 hover:bg-blue-700">
                                             <Link href="/doctor/dashboard">Go to Doctor Dashboard</Link>
                                         </Button>
                                     </div>
-                                ) : !doctorProfile.is_verified && doctorProfile.is_approved === false && doctorProfile.rejection_reason ? (
+                                ) : doctorProfile.rejection_reason ? (
                                     <div className="text-center">
                                         <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
                                         <h2 className="text-2xl font-bold mb-2">Application Rejected</h2>

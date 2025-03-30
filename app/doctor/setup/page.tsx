@@ -227,6 +227,7 @@ export default function DoctorSetup() {
             const { error: profileError } = await supabase
                 .from('doc_profiles')
                 .insert({
+                    user_id: userId,
                     created_at: new Date().toISOString(),
                     first_name: formData.firstName,
                     last_name: formData.lastName,
@@ -240,7 +241,8 @@ export default function DoctorSetup() {
                     bio: formData.bio,
                     license_url: licenseUrl,
                     degree_url: degreeUrl,
-                    is_verified: false
+                    is_verified: false,
+                    is_approved: false
                 });
 
             if (profileError) throw profileError;

@@ -18,6 +18,7 @@ import { CopilotManager } from "@/components/copilot";
 import { subscribeUser, unsubscribeUser } from '@/app/actions'
 import { createClient } from "@/lib/supabase/client";
 import { checkAdminStatus } from "@/lib/supabase/admin"; // Import the admin checking function
+import { Toaster } from "@/components/ui/toaster";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -241,6 +242,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           sessionData={sessionData}
           setSessionData={setSessionData}
         />
+        <Toaster />
       </main>
     </div>
   );

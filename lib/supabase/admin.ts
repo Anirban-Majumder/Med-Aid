@@ -29,7 +29,12 @@ export const checkAdminStatus = async (
         return true;
     }
 
-    // Otherwise check the database
+    // For now, only use hardcoded admin list since the is_admin column doesn't exist in profiles table
+    console.log('User is not in hardcoded admin list:', userEmail);
+    return false;
+
+    // This commented code would check the database if the is_admin column existed
+    /*
     try {
         const { data, error } = await supabase
             .from('profiles')
@@ -49,6 +54,7 @@ export const checkAdminStatus = async (
         console.error('Error checking admin status:', errorMessage);
         return false;
     }
+    */
 };
 
 // Re-export createClient to maintain backward compatibility
